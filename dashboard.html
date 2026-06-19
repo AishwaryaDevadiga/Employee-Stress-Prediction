@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Stress Prediction Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f4c75 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1e293b;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px 30px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideDown 0.6s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        header h1 {
+            color: #0f172a;
+            margin-bottom: 8px;
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        header p {
+            color: #64748b;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        
+        .status {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 12px 24px;
+            border-radius: 30px;
+            margin-top: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+        
+        .status.healthy {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #b1dfbb;
+            box-shadow: 0 5px 15px rgba(21, 87, 36, 0.2);
+        }
+        
+        .status.unhealthy {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f1b0b7;
+            box-shadow: 0 5px 15px rgba(114, 28, 36, 0.2);
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeIn 0.6s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card h2 {
+            color: #0f172a;
+            margin-bottom: 25px;
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .card h2 i {
+            color: #3282b8;
+            font-size: 26px;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        label {
+            display: block;
+            color: #475569;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            color: #1e293b;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3282b8;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(50, 130, 184, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3282b8 0%, #0f4c75 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+            box-shadow: 0 8px 20px rgba(50, 130, 184, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(50, 130, 184, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border-left: 5px solid #3282b8;
+            display: none;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .result.show {
+            display: block;
+            animation: slideIn 0.4s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result h3 {
+            color: #0f172a;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .prediction-badge {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 15px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .badge-low {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+        }
+        
+        .badge-medium {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border: none;
+        }
+        
+        .badge-high {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+        }
+        
+        .confidence {
+            margin-top: 18px;
+            font-size: 14px;
+            color: #475569;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            background: #e2e8f0;
+            height: 8px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #3282b8, #0f4c75);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(50, 130, 184, 0.5);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px 20px;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #3282b8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+            box-shadow: 0 0 15px rgba(50, 130, 184, 0.3);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+            border: 1px solid #fca5a5;
+            border-left: 4px solid #dc2626;
+            font-weight: 500;
+        }
+        
+        .error.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .comparison-item {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .comparison-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-color: #3282b8;
+        }
+        
+        .comparison-item h4 {
+            color: #3282b8;
+            font-size: 13px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+        
+        .comparison-badge {
+            display: inline-block;
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0;
+        }
+        
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 14px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #94a3b8;
+            border-bottom: 3px solid transparent;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            margin-bottom: -2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 13px;
+        }
+        
+        .tab-btn:hover {
+            color: #475569;
+        }
+        
+        .tab-btn.active {
+            color: #3282b8;
+            border-bottom-color: #3282b8;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        .feature-input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+            border-left: 4px solid #3282b8;
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #164e63;
+            border: 1px solid #a5d8ff;
+            font-weight: 500;
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
+            color: #166534;
+            padding: 14px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+            border: 1px solid #86efac;
+            border-left: 4px solid #10b981;
+            font-weight: 600;
+        }
+        
+        .success.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .status-box {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .status-box h3 {
+            color: #0f172a;
+            font-size: 18px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        
+        .status-box p {
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            border-color: #3282b8;
+            box-shadow: 0 4px 12px rgba(50, 130, 184, 0.1);
+        }
+        
+        .stat-item strong {
+            color: #0f172a;
+            font-size: 14px;
+        }
+        
+        .stat-badge {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #0c4a6e;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature-input-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature-input-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            header h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <i class="fas fa-brain"></i> Employee Stress Prediction
+            </h1>
+            <p>Advanced Machine Learning Platform for Employee Wellness Analysis</p>
+            <div class="status unhealthy" id="apiStatus">
+                <i class="fas fa-circle"></i> Connecting...
+            </div>
+        </header>
+        
+        <div class="main-grid">
+            <!-- Single Prediction -->
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('single')">
+                        <i class="fas fa-user-chart"></i> Single Prediction
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('batch')">
+                        <i class="fas fa-layer-group"></i> Batch Prediction
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('compare')">
+                        <i class="fas fa-code-branch"></i> Compare Models
+                    </button>
+                </div>
+                
+                <!-- Single Prediction Tab -->
+                <div id="single" class="tab-content active">
+                    <h2><i class="fas fa-chart-line"></i> Predict Stress Level</h2>
+                    
+                    <div class="info-box">
+                        <i class="fas fa-info-circle"></i> Enter employee details below to predict their stress level with advanced AI
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-robot"></i> Model Type</label>
+                        <select id="modelType" onchange="updateModelInfo()">
+                            <option value="general">General Model - All Employees</option>
+                            <option value="male">Male-Specific Model - Optimized</option>
+                            <option value="female">Female-Specific Model - Optimized</option>
+                        </select>
+                    </div>
+                    
+                    <div class="feature-input-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-venus-mars"></i> Gender</label>
+                            <select id="gender">
+                                <option value="0">Male (0)</option>
+                                <option value="1">Female (1)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-birthday-cake"></i> Age</label>
+                            <input type="number" id="age" placeholder="25" min="18" max="70">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> Years in Company</label>
+                            <input type="number" id="yearsCompany" placeholder="5" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-briefcase"></i> Prior Experience</label>
+                            <input type="number" id="priorExp" placeholder="2" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-money-bill"></i> Salary</label>
+                            <input type="number" id="salary" placeholder="50000" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-coins"></i> Basic Salary</label>
+                            <input type="number" id="basicSalary" placeholder="5000" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-heartbeat"></i> Heart Rate (BPM)</label>
+                            <input type="number" id="heartRate" placeholder="80" min="40" max="200">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-building"></i> Company</label>
+                            <select id="company">
+                                <option value="0">Company 0</option>
+                                <option value="1">Company 1</option>
+                                <option value="2">Company 2</option>
+                                <option value="3">Company 3</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button onclick="predictSingle()">
+                        <i class="fas fa-magic"></i> Predict Stress Level
+                    </button>
+                    
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 15px; color: #475569; font-weight: 600;">Analyzing employee data...</p>
+                    </div>
+                    
+                    <div class="result" id="result"></div>
+                    <div class="error" id="error"></div>
+                </div>
+                
+                <!-- Batch Prediction Tab -->
+                <div id="batch" class="tab-content">
+                    <h2><i class="fas fa-chart-bar"></i> Batch Prediction</h2>
+                    
+                    <div class="info-box">
+                        <i class="fas fa-info-circle"></i> Predict stress levels for multiple employees simultaneously
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-sliders-h"></i> Batch Size</label>
+                        <select id="batchCount">
+                            <option value="2">2 Employees</option>
+                            <option value="3" selected>3 Employees</option>
+                            <option value="5">5 Employees</option>
+                            <option value="10">10 Employees</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="generateBatchInputs()">
+                        <i class="fas fa-list"></i> Generate Input Fields
+                    </button>
+                    
+                    <div id="batchInputsContainer"></div>
+                    
+                    <button onclick="predictBatch()" style="display: none;" id="batchPredictBtn">
+                        <i class="fas fa-bolt"></i> Predict All
+                    </button>
+                    
+                    <div class="loading" id="batchLoading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 15px; color: #475569; font-weight: 600;">Processing batch predictions...</p>
+                    </div>
+                    
+                    <div class="result" id="batchResult"></div>
+                    <div class="error" id="batchError"></div>
+                </div>
+                
+                <!-- Compare Models Tab -->
+                <div id="compare" class="tab-content">
+                    <h2><i class="fas fa-balance-scale"></i> Compare All Models</h2>
+                    
+                    <div class="info-box">
+                        <i class="fas fa-info-circle"></i> Compare predictions from all available AI models side by side
+                    </div>
+                    
+                    <div class="feature-input-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-venus-mars"></i> Gender</label>
+                            <select id="cGender">
+                                <option value="0">Male (0)</option>
+                                <option value="1">Female (1)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-birthday-cake"></i> Age</label>
+                            <input type="number" id="cAge" placeholder="25" min="18" max="70">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> Years in Company</label>
+                            <input type="number" id="cYearsCompany" placeholder="5" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-briefcase"></i> Prior Experience</label>
+                            <input type="number" id="cPriorExp" placeholder="2" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-money-bill"></i> Salary</label>
+                            <input type="number" id="cSalary" placeholder="50000" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-coins"></i> Basic Salary</label>
+                            <input type="number" id="cBasicSalary" placeholder="5000" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-heartbeat"></i> Heart Rate (BPM)</label>
+                            <input type="number" id="cHeartRate" placeholder="80" min="40" max="200">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-building"></i> Company</label>
+                            <select id="cCompany">
+                                <option value="0">Company 0</option>
+                                <option value="1">Company 1</option>
+                                <option value="2">Company 2</option>
+                                <option value="3">Company 3</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button onclick="compareModels()">
+                        <i class="fas fa-exchange-alt"></i> Compare Models
+                    </button>
+                    
+                    <div class="loading" id="compareLoading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 15px; color: #475569; font-weight: 600;">Comparing AI models...</p>
+                    </div>
+                    
+                    <div class="result" id="compareResult"></div>
+                    <div class="error" id="compareError"></div>
+                </div>
+            </div>
+            
+            <!-- API Status & Info -->
+            <div class="card">
+                <h2><i class="fas fa-server"></i> System Status</h2>
+                
+                <div id="statusInfo">
+                    <div class="status-box">
+                        <div class="spinner" style="margin-bottom: 20px;"></div>
+                        <h3>Connecting to API</h3>
+                        <p>Initializing connection...</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 25px;">
+                    <h3 style="color: #0f172a; font-size: 16px; margin-bottom: 15px; font-weight: 700;">
+                        <i class="fas fa-heartbeat"></i> Stress Level Guide
+                    </h3>
+                    
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div>
+                                <strong style="font-size: 16px;">🟢 Low Stress</strong>
+                                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Score: 0-3</p>
+                            </div>
+                            <div class="stat-badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">Normal</div>
+                        </div>
+                        <div class="stat-item">
+                            <div>
+                                <strong style="font-size: 16px;">🟡 Medium Stress</strong>
+                                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Score: 3-6</p>
+                            </div>
+                            <div class="stat-badge" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">Monitor</div>
+                        </div>
+                        <div class="stat-item">
+                            <div>
+                                <strong style="font-size: 16px;">🔴 High Stress</strong>
+                                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Score: 6-10</p>
+                            </div>
+                            <div class="stat-badge" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">Alert</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                    <h3 style="color: #0f172a; font-size: 16px; margin-bottom: 15px; font-weight: 700;">
+                        <i class="fas fa-robot"></i> AI Models
+                    </h3>
+                    
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div>
+                                <strong>General Model</strong>
+                                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">All Employees</p>
+                            </div>
+                            <span style="font-size: 12px; font-weight: 700; color: #0f4c75;">99.4%</span>
+                        </div>
+                        <div class="stat-item">
+                            <div>
+                                <strong>Male-Specific</strong>
+                                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Optimized</p>
+                            </div>
+                            <span style="font-size: 12px; font-weight: 700; color: #0f4c75;">97.9%</span>
+                        </div>
+                        <div class="stat-item">
+                            <div>
+                                <strong>Female-Specific</strong>
+                                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Optimized</p>
+                            </div>
+                            <span style="font-size: 12px; font-weight: 700; color: #0f4c75;">98.3%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:5000';
+        
+        // Check API health on load
+        window.addEventListener('load', () => {
+            checkAPIHealth();
+            setInterval(checkAPIHealth, 5000); // Check every 5 seconds
+        });
+        
+        function checkAPIHealth() {
+            fetch(`${API_URL}/health`)
+                .then(response => response.json())
+                .then(data => {
+                    const statusEl = document.getElementById('apiStatus');
+                    const statusInfo = document.getElementById('statusInfo');
+                    
+                    statusEl.classList.remove('unhealthy');
+                    statusEl.classList.add('healthy');
+                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> API Healthy';
+                    
+                    let modelCount = Object.keys(data.loaded_models || {}).length;
+                    statusInfo.innerHTML = `
+                        <div class="status-box" style="background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%); border: 1px solid #86efac; border-left: 4px solid #10b981;">
+                            <i class="fas fa-check-circle" style="font-size: 32px; color: #10b981; margin-bottom: 12px;"></i>
+                            <h3 style="color: #166534;">API Connected</h3>
+                            <p style="color: #166534; font-size: 14px;">
+                                <strong>${modelCount} AI Models Ready</strong><br>
+                                <span style="font-size: 13px; opacity: 0.9;">System online and operational</span>
+                            </p>
+                        </div>
+                        <div style="margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 10px; border: 1px solid #e2e8f0; font-size: 13px; color: #475569;">
+                            <strong style="color: #0f172a; display: block; margin-bottom: 10px;">📡 Active Models:</strong>
+                            ${Object.keys(data.loaded_models || {}).map(m => `<div style="padding: 6px 0; padding-left: 20px;">• ${m.replace('_', ' ')}</div>`).join('')}
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    const statusEl = document.getElementById('apiStatus');
+                    statusEl.classList.remove('healthy');
+                    statusEl.classList.add('unhealthy');
+                    statusEl.innerHTML = '<i class="fas fa-times-circle"></i> API Offline';
+                    
+                    const statusInfo = document.getElementById('statusInfo');
+                    statusInfo.innerHTML = `
+                        <div class="status-box" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #fca5a5; border-left: 4px solid #dc2626;">
+                            <i class="fas fa-exclamation-circle" style="font-size: 32px; color: #dc2626; margin-bottom: 12px;"></i>
+                            <h3 style="color: #991b1b;">Cannot Connect</h3>
+                            <p style="color: #991b1b; font-size: 14px; line-height: 1.6;">
+                                Make sure Flask API is running:<br>
+                                <code style="background: #1f2937; color: #10b981; padding: 10px 12px; border-radius: 6px; display: block; margin-top: 12px; font-family: 'Courier New'; font-size: 12px; font-weight: 600;">python app.py</code>
+                            </p>
+                        </div>
+                    `;
+                });
+        }
+        
+        function switchTab(tab) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Clear previous results
+            document.getElementById('result').classList.remove('show');
+            document.getElementById('error').classList.remove('show');
+        }
+        
+        function getFeatures() {
+            const age = parseFloat(document.getElementById('age').value);
+            const yearsCompany = parseFloat(document.getElementById('yearsCompany').value);
+            const priorExp = parseFloat(document.getElementById('priorExp').value);
+            const salary = parseFloat(document.getElementById('salary').value);
+            const basicSalary = parseFloat(document.getElementById('basicSalary').value);
+            const gender = parseFloat(document.getElementById('gender').value);
+            const heartRate = parseFloat(document.getElementById('heartRate').value);
+            const company = parseInt(document.getElementById('company').value);
+            
+            // Calculate age_when_joined
+            const ageWhenJoined = age - yearsCompany;
+            
+            // Company dummies (4 companies, excluding one as baseline)
+            const companyCheerper = company === 0 ? 1 : 0;
+            const companyGlasses = company === 1 ? 1 : 0;
+            const companyPear = company === 2 ? 1 : 0;
+            
+            // Department dummies (all 0 for now - could be extended)
+            const deptAI = 0;
+            const deptBigData = 0;
+            const deptDesign = 0;
+            const deptSales = 0;
+            const deptSearchEngine = 0;
+            const deptSupport = 0;
+            
+            // Calculate engineered features
+            // Workload_Score = (years_in_company / max) * 10, assuming max=10
+            const workloadScore = (yearsCompany / 10) * 10;
+            
+            // Experience_Pressure = max(years_in_company - prior_experience, 0)
+            const experiencePressure = Math.max(yearsCompany - priorExp, 0);
+            
+            // HeartRate_Stress = ((HR - 40) / (200 - 40)) * 10
+            const heartRateStress = ((heartRate - 40) / (200 - 40)) * 10;
+            
+            // Return features in EXACT model order
+            return [
+                1,  // employee_id (placeholder)
+                age,
+                ageWhenJoined,
+                yearsCompany,
+                salary,
+                basicSalary,
+                priorExp,
+                gender,
+                heartRate,
+                companyCheerper,
+                companyGlasses,
+                companyPear,
+                deptAI,
+                deptBigData,
+                deptDesign,
+                deptSales,
+                deptSearchEngine,
+                deptSupport,
+                workloadScore,
+                experiencePressure,
+                heartRateStress
+            ];
+        }
+        
+        function getBadgeClass(stressLevel) {
+            if (stressLevel === 'Low') return 'badge-low';
+            if (stressLevel === 'Medium') return 'badge-medium';
+            return 'badge-high';
+        }
+        
+        function predictSingle() {
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const error = document.getElementById('error');
+            
+            result.classList.remove('show');
+            error.classList.remove('show');
+            loading.classList.add('show');
+            
+            const features = getFeatures();
+            const modelType = document.getElementById('modelType').value;
+            
+            fetch(`${API_URL}/predict`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    features: features,
+                    model_type: modelType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.remove('show');
+                
+                if (data.status === 'error') {
+                    error.classList.add('show');
+                    error.textContent = `❌ ${data.error}`;
+                    return;
+                }
+                
+                const pred = data.prediction;
+                const badge = getBadgeClass(pred.stress_level);
+                
+                let html = `
+                    <h3><i class="fas fa-chart-pie"></i> Prediction Result</h3>
+                    <div class="prediction-badge ${badge}">
+                        <i class="fas fa-${pred.stress_level === 'Low' ? 'smile' : pred.stress_level === 'Medium' ? 'meh' : 'frown'}"></i>
+                        ${pred.stress_level.toUpperCase()} STRESS
+                    </div>
+                    <div class="confidence">
+                        <strong>Model Confidence: ${(pred.confidence * 100).toFixed(1)}%</strong>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${pred.confidence * 100}%"></div>
+                        </div>
+                    </div>
+                `;
+                
+                if (pred.probability_distribution) {
+                    html += '<div style="margin-top: 18px;"><strong style="color: #0f172a; display: block; margin-bottom: 12px;">📊 Probability Distribution:</strong>';
+                    const colors = {
+                        'Low': '#10b981',
+                        'Medium': '#f59e0b',
+                        'High': '#ef4444'
+                    };
+                    for (const [level, prob] of Object.entries(pred.probability_distribution)) {
+                        const color = colors[level];
+                        html += `<div style="margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-weight: 600; color: #0f172a;">🎯 ${level}</span>
+                                <strong style="color: ${color};">${(prob * 100).toFixed(1)}%</strong>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${prob * 100}%; background: linear-gradient(90deg, ${color}, ${color})!important;"></div>
+                            </div>
+                        </div>`;
+                    }
+                    html += '</div>';
+                }
+                
+                result.innerHTML = html;
+                result.classList.add('show');
+            })
+            .catch(err => {
+                loading.classList.remove('show');
+                error.classList.add('show');
+                error.textContent = `❌ Error: ${err.message}`;
+            });
+        }
+        
+        function generateBatchInputs() {
+            const count = parseInt(document.getElementById('batchCount').value);
+            const container = document.getElementById('batchInputsContainer');
+            
+            let html = '';
+            for (let i = 0; i < count; i++) {
+                html += `
+                    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 20px; border-radius: 12px; margin-bottom: 18px; border: 1px solid #e2e8f0;">
+                        <h4 style="color: #3282b8; margin-bottom: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-user"></i> Employee ${i + 1}
+                        </h4>
+                        <div class="feature-input-grid">
+                            <div class="form-group">
+                                <label><i class="fas fa-venus-mars"></i> Gender</label>
+                                <select id="batch_gender_${i}">
+                                    <option value="0">Male (0)</option>
+                                    <option value="1">Female (1)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-birthday-cake"></i> Age</label>
+                                <input type="number" id="batch_age_${i}" placeholder="25" min="18">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-calendar-alt"></i> Years</label>
+                                <input type="number" id="batch_years_${i}" placeholder="5" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-briefcase"></i> Prior Exp</label>
+                                <input type="number" id="batch_prior_${i}" placeholder="2" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-money-bill"></i> Salary</label>
+                                <input type="number" id="batch_salary_${i}" placeholder="50000" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-coins"></i> Basic</label>
+                                <input type="number" id="batch_basic_${i}" placeholder="5000" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-heartbeat"></i> Heart Rate</label>
+                                <input type="number" id="batch_hr_${i}" placeholder="80" min="40">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-building"></i> Company</label>
+                                <select id="batch_company_${i}">
+                                    <option value="0">Company 0</option>
+                                    <option value="1">Company 1</option>
+                                    <option value="2">Company 2</option>
+                                    <option value="3">Company 3</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+            document.getElementById('batchPredictBtn').style.display = 'block';
+        }
+        
+        function predictBatch() {
+            const count = parseInt(document.getElementById('batchCount').value);
+            const samples = [];
+            
+            for (let i = 0; i < count; i++) {
+                const age = parseFloat(document.getElementById(`batch_age_${i}`).value);
+                const yearsCompany = parseFloat(document.getElementById(`batch_years_${i}`).value);
+                const priorExp = parseFloat(document.getElementById(`batch_prior_${i}`).value);
+                const salary = parseFloat(document.getElementById(`batch_salary_${i}`).value);
+                const basicSalary = parseFloat(document.getElementById(`batch_basic_${i}`).value);
+                const gender = parseFloat(document.getElementById(`batch_gender_${i}`).value);
+                const heartRate = parseFloat(document.getElementById(`batch_hr_${i}`).value);
+                const company = parseInt(document.getElementById(`batch_company_${i}`).value);
+                
+                // Calculate age_when_joined
+                const ageWhenJoined = age - yearsCompany;
+                
+                // Company dummies
+                const companyCheerper = company === 0 ? 1 : 0;
+                const companyGlasses = company === 1 ? 1 : 0;
+                const companyPear = company === 2 ? 1 : 0;
+                
+                // Department dummies
+                const deptAI = 0, deptBigData = 0, deptDesign = 0;
+                const deptSales = 0, deptSearchEngine = 0, deptSupport = 0;
+                
+                // Calculate engineered features
+                const workloadScore = (yearsCompany / 10) * 10;
+                const experiencePressure = Math.max(yearsCompany - priorExp, 0);
+                const heartRateStress = ((heartRate - 40) / (200 - 40)) * 10;
+                
+                const sample = [
+                    1,  // employee_id
+                    age,
+                    ageWhenJoined,
+                    yearsCompany,
+                    salary,
+                    basicSalary,
+                    priorExp,
+                    gender,
+                    heartRate,
+                    companyCheerper,
+                    companyGlasses,
+                    companyPear,
+                    deptAI,
+                    deptBigData,
+                    deptDesign,
+                    deptSales,
+                    deptSearchEngine,
+                    deptSupport,
+                    workloadScore,
+                    experiencePressure,
+                    heartRateStress
+                ];
+                samples.push(sample);
+            }
+            
+            const loading = document.getElementById('batchLoading');
+            const result = document.getElementById('batchResult');
+            const error = document.getElementById('batchError');
+            
+            result.classList.remove('show');
+            error.classList.remove('show');
+            loading.classList.add('show');
+            
+            fetch(`${API_URL}/batch-predict`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ samples: samples })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.remove('show');
+                
+                if (data.status === 'error') {
+                    error.classList.add('show');
+                    error.textContent = `❌ ${data.error}`;
+                    return;
+                }
+                
+                let html = `<h3><i class="fas fa-check-double"></i> Batch Results (${data.predictions.length} employees)</h3>`;
+                html += '<div style="display: grid; gap: 12px; margin-top: 15px;">';
+                
+                data.predictions.forEach((pred, idx) => {
+                    const badge = getBadgeClass(pred.stress_level);
+                    const icons = {
+                        'Low': 'smile',
+                        'Medium': 'meh',
+                        'High': 'frown'
+                    };
+                    html += `
+                        <div style="padding: 15px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 10px; border: 1px solid #e2e8f0; transition: all 0.3s ease; hover: transform: translateX(5px);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <strong style="color: #0f172a; font-size: 15px;">👤 Employee ${idx + 1}</strong>
+                                </div>
+                                <div class="prediction-badge ${badge}" style="margin: 0; padding: 8px 16px; font-size: 12px;">
+                                    <i class="fas fa-${icons[pred.stress_level] || 'circle'}"></i> ${pred.stress_level}
+                                </div>
+                            </div>
+                            <p style="font-size: 13px; color: #64748b; margin-top: 8px;">Confidence: <strong style="color: #0f4c75;">${(pred.confidence * 100).toFixed(1)}%</strong></p>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                result.innerHTML = html;
+                result.classList.add('show');
+            })
+            .catch(err => {
+                loading.classList.remove('show');
+                error.classList.add('show');
+                error.textContent = `❌ Error: ${err.message}`;
+            });
+        }
+        
+        function compareModels() {
+            const loading = document.getElementById('compareLoading');
+            const result = document.getElementById('compareResult');
+            const error = document.getElementById('compareError');
+            
+            result.classList.remove('show');
+            error.classList.remove('show');
+            loading.classList.add('show');
+            
+            // Get compare form values
+            const age = parseFloat(document.getElementById('cAge').value);
+            const yearsCompany = parseFloat(document.getElementById('cYearsCompany').value);
+            const priorExp = parseFloat(document.getElementById('cPriorExp').value);
+            const salary = parseFloat(document.getElementById('cSalary').value);
+            const basicSalary = parseFloat(document.getElementById('cBasicSalary').value);
+            const gender = parseFloat(document.getElementById('cGender').value);
+            const heartRate = parseFloat(document.getElementById('cHeartRate').value);
+            const company = parseInt(document.getElementById('cCompany').value);
+            
+            // Calculate age_when_joined
+            const ageWhenJoined = age - yearsCompany;
+            
+            // Company dummies
+            const companyCheerper = company === 0 ? 1 : 0;
+            const companyGlasses = company === 1 ? 1 : 0;
+            const companyPear = company === 2 ? 1 : 0;
+            
+            // Department dummies
+            const deptAI = 0, deptBigData = 0, deptDesign = 0;
+            const deptSales = 0, deptSearchEngine = 0, deptSupport = 0;
+            
+            // Calculate engineered features
+            const workloadScore = (yearsCompany / 10) * 10;
+            const experiencePressure = Math.max(yearsCompany - priorExp, 0);
+            const heartRateStress = ((heartRate - 40) / (200 - 40)) * 10;
+            
+            const features = [
+                1,  // employee_id
+                age,
+                ageWhenJoined,
+                yearsCompany,
+                salary,
+                basicSalary,
+                priorExp,
+                gender,
+                heartRate,
+                companyCheerper,
+                companyGlasses,
+                companyPear,
+                deptAI,
+                deptBigData,
+                deptDesign,
+                deptSales,
+                deptSearchEngine,
+                deptSupport,
+                workloadScore,
+                experiencePressure,
+                heartRateStress
+            ];
+            
+            fetch(`${API_URL}/compare-genders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ features: features })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.remove('show');
+                
+                if (data.status === 'error') {
+                    error.classList.add('show');
+                    error.textContent = `❌ ${data.error}`;
+                    return;
+                }
+                
+                const preds = data.predictions;
+                let html = `<h3><i class="fas fa-exchange-alt"></i> Model Comparison Results</h3>`;
+                html += '<div class="comparison-grid" style="margin-top: 20px;">';
+                
+                for (const [model, pred] of Object.entries(preds)) {
+                    const badge = getBadgeClass(pred.stress_level);
+                    const label = model === 'general' ? '🤖 General Model' : 
+                                 model === 'male_specific' ? '👨 Male-Specific' : '👩 Female-Specific';
+                    const icons = {
+                        'Low': 'smile',
+                        'Medium': 'meh',
+                        'High': 'frown'
+                    };
+                    
+                    html += `
+                        <div class="comparison-item">
+                            <h4>${label}</h4>
+                            <div class="comparison-badge ${badge}">
+                                <i class="fas fa-${icons[pred.stress_level] || 'circle'}" style="margin-right: 8px;"></i>${pred.stress_level}
+                            </div>
+                            <p style="font-size: 12px; color: #64748b; margin-top: 12px;">
+                                <i class="fas fa-signal"></i> ${(pred.confidence * 100).toFixed(0)}% confident
+                            </p>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+                result.innerHTML = html;
+                result.classList.add('show');
+            })
+            .catch(err => {
+                loading.classList.remove('show');
+                error.classList.add('show');
+                error.textContent = `❌ Error: ${err.message}`;
+            });
+        }
+        
+        function updateModelInfo() {
+            // Placeholder for model-specific info
+            console.log('Model type changed');
+        }
+    </script>
+</body>
+</html>

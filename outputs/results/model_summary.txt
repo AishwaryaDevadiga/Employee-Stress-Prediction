@@ -1,0 +1,40 @@
+======================================================================
+EMPLOYEE STRESS PREDICTION - MODEL SUMMARY
+======================================================================
+
+BEST MODEL:
+  Name: Decision Tree
+  Accuracy: 0.9940
+  Precision: 0.9940
+  Recall: 0.9940
+  F1-Score: 0.9940
+
+ALL MODELS PERFORMANCE:
+
+  Logistic Regression:
+    Accuracy: 0.8510
+    Precision: 0.8518
+    Recall: 0.8510
+    F1-Score: 0.8509
+
+  Decision Tree:
+    Accuracy: 0.9940
+    Precision: 0.9940
+    Recall: 0.9940
+    F1-Score: 0.9940
+
+  Random Forest:
+    Accuracy: 0.9860
+    Precision: 0.9860
+    Recall: 0.9860
+    F1-Score: 0.9860
+
+  SVM:
+    Accuracy: 0.4680
+    Precision: 0.2190
+    Recall: 0.4680
+    F1-Score: 0.2984
+
+
+MODEL SAVED AT:
+  models/best_stress_model.pkl
