@@ -196,19 +196,7 @@ def show_login_page():
         
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # Demo credentials info
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-        **Demo Credentials:**
-        
-        👤 **Admin**
-        - Username: `admin`
-        - Password: `admin123`
-        
-        👥 **HR Manager**
-        - Username: `hr`
-        - Password: `hr123`
-        """)
+
 
 # ==================== DASHBOARD PAGE ====================
 def show_dashboard(data, model):
@@ -549,34 +537,40 @@ def show_reports_page():
     
     col1, col2 = st.columns(2)
     
-    # CSV Report
+    # PDF Report
     with col1:
-        if st.button("📥 Download as CSV", use_container_width=True):
-            report_data = {
-                'Date': [pred['timestamp'].strftime('%Y-%m-%d %H:%M:%S')],
-                'Age': [pred['age']],
-                'Gender': [pred['gender']],
-                'Years in Company': [pred['years_company']],
-                'Salary': [pred['salary']],
-                'Heart Rate': [pred['heart_rate']],
-                'Stress Score': [f"{pred['stress_score']:.2f}"],
-                'Stress Level': [pred['stress_level']],
-                'Confidence': [f"{max(pred['probabilities'])*100:.1f}%"]
+        if st.button("📄 Save as PDF", use_container_width=True):
+            from pdf_generator import pdf_generator
+            
+            employee_data = {
+                'id': 'N/A',
+                'age': pred['age'],
+                'gender': pred['gender'],
+                'department': 'N/A',
+                'salary': pred['salary'],
+                'heart_rate': pred['heart_rate']
             }
             
-            df_report = pd.DataFrame(report_data)
-            csv = df_report.to_csv(index=False)
-            
-            st.download_button(
-                label="📥 Download CSV",
-                data=csv,
-                file_name=f"stress_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
+            pdf_buffer = pdf_generator.generate_prediction_report(
+                employee_data=employee_data,
+                prediction=pred['prediction'],
+                probabilities=pred['probabilities'],
+                stress_score=pred['stress_score']
             )
+            
+            if pdf_buffer is not None:
+                st.download_button(
+                    label="📥 Download PDF",
+                    data=pdf_buffer.getvalue(),
+                    file_name=f"stress_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf"
+                )
+            else:
+                st.error("⚠️ PDF generator is currently unavailable (reportlab library might not be properly installed).")
     
     # Excel Report
     with col2:
-        if st.button("📊 Download as Excel", use_container_width=True):
+        if st.button("📊 Save as Excel", use_container_width=True):
             report_data = {
                 'Date': [pred['timestamp'].strftime('%Y-%m-%d %H:%M:%S')],
                 'Age': [pred['age']],

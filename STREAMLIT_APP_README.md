@@ -110,8 +110,8 @@ Stress_Level:
 
 ### Page 4: Download Reports
 **Options:**
-- 📥 Download as CSV
-- 📊 Download as Excel
+- 📄 Save as PDF
+- 📊 Save as Excel
 - Report Preview
 
 ---

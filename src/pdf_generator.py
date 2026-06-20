@@ -92,7 +92,7 @@ class PDFReportGenerator:
             ["Age", str(employee_data.get('age', 'N/A'))],
             ["Gender", str(employee_data.get('gender', 'N/A'))],
             ["Department", str(employee_data.get('department', 'N/A'))],
-            ["Salary", f"${employee_data.get('salary', 0):,.2f}"],
+            ["Salary", f"Rs. {employee_data.get('salary', 0):,.2f}"],
             ["Heart Rate (BPM)", str(employee_data.get('heart_rate', 'N/A'))]
         ]
         

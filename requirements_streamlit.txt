@@ -7,3 +7,4 @@ plotly>=5.0.0
 joblib>=1.1.0
 streamlit>=1.15.0
 openpyxl>=3.6.0
+reportlab>=5.0.0
