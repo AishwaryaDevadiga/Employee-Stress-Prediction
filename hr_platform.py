@@ -247,7 +247,6 @@ def show_dashboard_page(models, df):
     med_stress = len(df[df['Stress_Level'] == 1])
     high_stress = len(df[df['Stress_Level'] == 2])
     avg_score = df['Stress_Score'].mean() if 'Stress_Score' in df.columns else 0
-    model_accuracy = 0.994
     
     with col1:
         st.markdown(f"""
@@ -294,28 +293,32 @@ def show_dashboard_page(models, df):
         </div>
         """, unsafe_allow_html=True)
     
-    with col6:
-        st.markdown(f"""
-        <div class='metric-card'>
-            <h3>🎯</h3>
-            <h2>{model_accuracy:.1%}</h2>
-            <p>Model Accuracy</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
     st.markdown("---")
     
     # Charts
     col1, col2 = st.columns(2)
     
     with col1:
-        stress_dist = df['Stress_Level'].value_counts().sort_index()
+        # Create data with explicit colors for each stress level
+        stress_data = {
+            'Stress Level': ['Low Stress', 'Medium Stress', 'High Stress'],
+            'Count': [
+                len(df[df['Stress_Level'] == 0]),
+                len(df[df['Stress_Level'] == 1]),
+                len(df[df['Stress_Level'] == 2])
+            ]
+        }
+        stress_df = pd.DataFrame(stress_data)
+        
         fig = px.pie(
-            values=stress_dist.values,
-            names=['Low Stress', 'Medium Stress', 'High Stress'],
+            stress_df,
+            values='Count',
+            names='Stress Level',
             title="Stress Level Distribution",
-            color_discrete_sequence=['#10b981', '#f59e0b', '#ef4444'],
             hole=0.4
+        )
+        fig.update_traces(
+            marker=dict(colors=['#10b981', '#f59e0b', '#ef4444'])  # Green, Orange, Red
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -330,25 +333,7 @@ def show_dashboard_page(models, df):
         )
         st.plotly_chart(fig, use_container_width=True)
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        fig = px.scatter(
-            df, x='age', y='Resting_Heart_Rate',
-            color='Stress_Level',
-            title="Age vs Heart Rate",
-            color_discrete_map={0: '#10b981', 1: '#f59e0b', 2: '#ef4444'}
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        fig = px.scatter(
-            df, x='salary', y='Workload_Score',
-            color='Stress_Level',
-            title="Salary vs Workload Score",
-            color_discrete_map={0: '#10b981', 1: '#f59e0b', 2: '#ef4444'}
-        )
-        st.plotly_chart(fig, use_container_width=True)
+    st.markdown("---")
 
 # ==================== PREDICTION PAGE ====================
 def show_prediction_page(models):
@@ -369,12 +354,12 @@ def show_prediction_page(models):
     with col1:
         age = st.number_input("Age", min_value=18, max_value=70, value=35)
         gender = st.selectbox("Gender", ["Male", "Female"])
-        years_company = st.number_input("Years in Company", min_value=0, max_value=50, value=5, step=0.5)
-        prior_exp = st.number_input("Prior Experience (Years)", min_value=0, max_value=50, value=3, step=0.5)
+        years_company = st.number_input("Years in Company", min_value=0.0, max_value=50.0, value=5.0, step=0.5)
+        prior_exp = st.number_input("Prior Experience (Years)", min_value=0.0, max_value=50.0, value=3.0, step=0.5)
     
     with col2:
         salary = st.number_input("Salary", min_value=20000, max_value=200000, value=60000, step=1000)
-        bonus = st.number_input("Annual Bonus", min_value=0, max_value=50000, value=5000, step=500)
+        bonus = st.number_input("Annual Bonus", min_value=0.0, max_value=50000.0, value=5000.0, step=500.0)
         heart_rate = st.number_input("Resting Heart Rate (BPM)", min_value=40, max_value=120, value=75)
         company = st.selectbox("Company", [0, 1, 2, 3])
     
@@ -385,14 +370,26 @@ def show_prediction_page(models):
         experience_pressure = max(years_company - prior_exp, 0)
         heart_rate_stress = ((heart_rate - 40) / (200 - 40)) * 10
         
-        company_dummies = [1 if company == i else 0 for i in range(3)]
-        dept_dummies = [0] * 6
-        
         features = np.array([[
-            1, age, age_when_joined, years_company, salary, bonus, prior_exp,
-            1 if gender == "Female" else 0, heart_rate,
-            *company_dummies, *dept_dummies,
-            workload_score, experience_pressure, heart_rate_stress
+            0,  # employee_id
+            age,
+            age_when_joined,
+            years_company,
+            salary,
+            bonus,
+            prior_exp,
+            1 if gender == "Female" else 0,
+            heart_rate,
+            1 if company == 0 else 0,  # company_Glasses
+            1 if company == 1 else 0,  # company_Pear
+            0,  # department_BigData
+            0,  # department_Design
+            0,  # department_Sales
+            0,  # department_Search Engine
+            0,  # department_Support
+            workload_score,
+            experience_pressure,
+            heart_rate_stress
         ]])
         
         try:
@@ -430,7 +427,7 @@ def show_prediction_page(models):
             fig = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=stress_score,
-                domain={'x': [0, 10], 'y': [0, 10]},
+                domain={'x': [0, 1], 'y': [0, 1]},
                 title={'text': "Stress Score"},
                 gauge={
                     'axis': {'range': [None, 10]},

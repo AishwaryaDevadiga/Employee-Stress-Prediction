@@ -209,13 +209,24 @@ def main():
         
         with col1:
             # Stress distribution pie chart
-            stress_dist = df['Stress_Level'].value_counts().sort_index()
-            stress_labels = ['Low Stress', 'Medium Stress', 'High Stress']
+            stress_data = {
+                'Stress Level': ['Low Stress', 'Medium Stress', 'High Stress'],
+                'Count': [
+                    len(df[df['Stress_Level'] == 0]),
+                    len(df[df['Stress_Level'] == 1]),
+                    len(df[df['Stress_Level'] == 2])
+                ]
+            }
+            stress_df = pd.DataFrame(stress_data)
+            
             fig_pie = px.pie(
-                values=stress_dist.values,
-                names=stress_labels,
-                title="Stress Level Distribution",
-                color_discrete_sequence=['#10b981', '#f59e0b', '#ef4444']
+                stress_df,
+                values='Count',
+                names='Stress Level',
+                title="Stress Level Distribution"
+            )
+            fig_pie.update_traces(
+                marker=dict(colors=['#10b981', '#f59e0b', '#ef4444'])  # Green, Orange, Red
             )
             st.plotly_chart(fig_pie, use_container_width=True)
         
@@ -247,15 +258,10 @@ def main():
             st.plotly_chart(fig_gender, use_container_width=True)
         
         with col2:
-            # Salary vs Stress
-            fig_salary = px.scatter(
-                df, x='salary', y='Workload_Score',
-                color='Stress_Level',
-                title="Salary vs Workload Score",
-                color_discrete_map={0: '#10b981', 1: '#f59e0b', 2: '#ef4444'},
-                labels={'Stress_Level': 'Stress Level', 'salary': 'Salary', 'Workload_Score': 'Workload'}
-            )
-            st.plotly_chart(fig_salary, use_container_width=True)
+            st.write("**Female Employees**")
+            st.metric("Count", len(female_df))
+            st.metric("Avg Age", f"{female_df['age'].mean():.1f}")
+            st.metric("Avg Heart Rate", f"{female_df['Resting_Heart_Rate'].mean():.1f}")
     
     # ==================== ANALYTICS PAGE ====================
     elif page == "📈 Analytics":
@@ -362,30 +368,42 @@ def main():
             with col1:
                 age = st.number_input("Age", min_value=18, max_value=70, value=30)
                 gender = st.selectbox("Gender", ["Male", "Female"])
-                years_company = st.number_input("Years in Company", min_value=0, max_value=50, value=5, step=0.5)
-                prior_exp = st.number_input("Prior Experience (Years)", min_value=0, max_value=50, value=3, step=0.5)
+                years_company = st.number_input("Years in Company", min_value=0.0, max_value=50.0, value=5.0, step=0.5)
+                prior_exp = st.number_input("Prior Experience (Years)", min_value=0.0, max_value=50.0, value=3.0, step=0.5)
             
             with col2:
                 salary = st.number_input("Salary", min_value=20000, max_value=200000, value=60000, step=1000)
-                bonus = st.number_input("Annual Bonus", min_value=0, max_value=50000, value=5000, step=500)
+                bonus = st.number_input("Annual Bonus", min_value=0.0, max_value=50000.0, value=5000.0, step=500.0)
                 heart_rate = st.number_input("Resting Heart Rate (BPM)", min_value=40, max_value=120, value=75)
                 company = st.selectbox("Company", list(range(4)))
             
             if st.button("🔮 Predict Stress Level", key="predict_single"):
-                # Prepare features (21 features in correct order)
+                # Prepare features (19 features matching training data structure)
                 age_when_joined = age - years_company
                 workload_score = (years_company / 10) * 10
                 experience_pressure = max(years_company - prior_exp, 0)
                 heart_rate_stress = ((heart_rate - 40) / (200 - 40)) * 10
                 
-                company_dummies = [1 if company == i else 0 for i in range(3)]
-                dept_dummies = [0] * 6
-                
                 features = np.array([[
-                    1, age, age_when_joined, years_company, salary, bonus, prior_exp,
-                    1 if gender == "Female" else 0, heart_rate,
-                    *company_dummies, *dept_dummies,
-                    workload_score, experience_pressure, heart_rate_stress
+                    0,  # employee_id
+                    age,
+                    age_when_joined,
+                    years_company,
+                    salary,
+                    bonus,
+                    prior_exp,
+                    1 if gender == "Female" else 0,
+                    heart_rate,
+                    1 if company == 0 else 0,  # company_Glasses
+                    1 if company == 1 else 0,  # company_Pear
+                    0,  # department_BigData
+                    0,  # department_Design
+                    0,  # department_Sales
+                    0,  # department_Search Engine
+                    0,  # department_Support
+                    workload_score,
+                    experience_pressure,
+                    heart_rate_stress
                 ]])
                 
                 try:
@@ -562,7 +580,6 @@ def main():
         - Support Vector Machine
         
         **Best Model Performance:**
-        - Accuracy: ~99.4%
         - Precision: High
         - Recall: High
         - F1-Score: High

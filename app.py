@@ -1,432 +1,673 @@
 """
-Flask Web API for Employee Stress Prediction
-Provides REST endpoints for stress prediction and model information.
+Professional Employee Stress Prediction System
+Streamlit Application - ML-Based HR Analytics Platform
+
+Methodology:
+- Load dataset and perform preprocessing
+- Feature Engineering (Workload Score, Experience Pressure, Heart Rate Stress)
+- Stress Score Calculation (0.4*Workload + 0.3*Experience + 0.3*HeartRate)
+- Stress Level Classification (0=Low, 1=Medium, 2=High)
+- Decision Tree Model (99.4% Accuracy)
+
+Flow: Login → Dashboard → Prediction → Results → Download Report
 """
 
-from flask import Flask, request, jsonify, send_file
-import joblib
-import numpy as np
+import streamlit as st
 import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+import joblib
 import os
+import sys
 from datetime import datetime
+from io import BytesIO
 
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-app = Flask(__name__)
+# ==================== PAGE CONFIG ====================
+st.set_page_config(
+    page_title="Employee Stress Prediction System",
+    page_icon="🏢",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Global variables for models
-general_model = None
-male_model = None
-female_model = None
-feature_names = None
-
-
-def load_models():
-    """Load all trained models."""
-    global general_model, male_model, female_model
-    
-    try:
-        # Load general model
-        if os.path.exists('models/best_stress_model.pkl'):
-            general_model = joblib.load('models/best_stress_model.pkl')
-            print("✓ General model loaded")
-        
-        # Load gender-specific models (if available)
-        male_path = 'models/gender_specific/male_decision_tree.pkl'
-        female_path = 'models/gender_specific/female_decision_tree.pkl'
-        
-        if os.path.exists(male_path):
-            male_model = joblib.load(male_path)
-            print("✓ Male-specific model loaded")
-        
-        if os.path.exists(female_path):
-            female_model = joblib.load(female_path)
-            print("✓ Female-specific model loaded")
-            
-    except Exception as e:
-        print(f"✗ Error loading models: {str(e)}")
-
-
-def get_stress_level_name(level):
-    """Convert numeric stress level to name."""
-    levels = {0: 'Low', 1: 'Medium', 2: 'High'}
-    return levels.get(level, 'Unknown')
-
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """
-    Health check endpoint.
-    Returns: JSON with API status
-    """
-    return jsonify({
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat(),
-        'message': 'Employee Stress Prediction API is running',
-        'models_loaded': {
-            'general': general_model is not None,
-            'male_specific': male_model is not None,
-            'female_specific': female_model is not None
-        }
-    }), 200
-
-
-@app.route('/model-info', methods=['GET'])
-def model_info():
-    """
-    Get information about available models.
-    Returns: JSON with model details
-    """
-    return jsonify({
-        'api_version': '1.0',
-        'timestamp': datetime.now().isoformat(),
-        'available_models': {
-            'general': 'Decision Tree (99.4% accuracy)',
-            'male_specific': 'Decision Tree (gender-specific)',
-            'female_specific': 'Decision Tree (gender-specific)'
-        },
-        'stress_levels': {
-            '0': 'Low (score < 3)',
-            '1': 'Medium (score 3-6)',
-            '2': 'High (score >= 6)'
-        },
-        'required_features': 'Contact API maintainer for feature list'
-    }), 200
-
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    """
-    Make a stress prediction.
-    
-    Request JSON:
-    {
-        "features": [f1, f2, f3, ...],
-        "use_gender_specific": false,
-        "gender": "male" or "female"
+# ==================== PROFESSIONAL STYLING ====================
+st.markdown("""
+    <style>
+    /* Main color scheme - Professional Blue & White */
+    :root {
+        --primary-color: #0052CC;
+        --secondary-color: #003D99;
+        --success-color: #28A745;
+        --warning-color: #FF9800;
+        --danger-color: #F44336;
+        --light-bg: #F5F7FA;
     }
     
-    Returns: JSON with prediction and confidence
-    """
+    /* Professional cards */
+    .kpi-card {
+        background: linear-gradient(135deg, #0052CC 0%, #003D99 100%);
+        padding: 25px;
+        border-radius: 12px;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 82, 204, 0.2);
+        text-align: center;
+    }
+    
+    .kpi-card h3 {
+        margin: 0;
+        font-size: 14px;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+    
+    .kpi-card h1 {
+        margin: 10px 0 0 0;
+        font-size: 32px;
+        font-weight: bold;
+    }
+    
+    /* Stress level colors */
+    .stress-low { background: linear-gradient(135deg, #28A745 0%, #20C997 100%); }
+    .stress-medium { background: linear-gradient(135deg, #FF9800 0%, #FFA726 100%); }
+    .stress-high { background: linear-gradient(135deg, #F44336 0%, #E53935 100%); }
+    
+    /* Header */
+    .header-section {
+        background: linear-gradient(135deg, #0052CC 0%, #003D99 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+    }
+    
+    .header-section h1 {
+        margin: 0;
+        font-size: 28px;
+    }
+    
+    .header-section p {
+        margin: 5px 0 0 0;
+        opacity: 0.9;
+    }
+    
+    /* Result card */
+    .result-card {
+        background: white;
+        border-left: 5px solid #0052CC;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin: 15px 0;
+    }
+    
+    /* Recommendation box */
+    .recommendation-box {
+        background: #F5F7FA;
+        border-left: 4px solid #0052CC;
+        padding: 15px;
+        border-radius: 6px;
+        margin: 15px 0;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==================== SESSION STATE ====================
+def initialize_session():
+    """Initialize session state."""
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+    if 'username' not in st.session_state:
+        st.session_state.username = None
+    if 'last_prediction' not in st.session_state:
+        st.session_state.last_prediction = None
+
+initialize_session()
+
+# ==================== DEMO CREDENTIALS ====================
+VALID_USERS = {
+    'admin': 'admin123',
+    'hr': 'hr123'
+}
+
+# ==================== LOAD DATA & MODELS ====================
+@st.cache_resource
+def load_data_and_models():
+    """Load processed data and trained models."""
+    data = None
+    model = None
+    
     try:
-        data = request.get_json()
+        # Load processed data
+        if os.path.exists('outputs/processed_data.csv'):
+            data = pd.read_csv('outputs/processed_data.csv')
         
-        # Validate request
-        if not data or 'features' not in data:
-            return jsonify({
-                'error': 'Missing "features" in request body',
-                'status': 'failed'
-            }), 400
+        # Load best model
+        if os.path.exists('models/best_general_model.pkl'):
+            model = joblib.load('models/best_general_model.pkl')
+    except Exception as e:
+        st.warning(f"⚠️ Could not load data/models: {e}")
+    
+    return data, model
+
+# ==================== LOGIN PAGE ====================
+def show_login_page():
+    """Display professional login page."""
+    # Center layout
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("<br>" * 3, unsafe_allow_html=True)
         
-        features = data.get('features', [])
-        use_gender_specific = data.get('use_gender_specific', False)
-        gender = data.get('gender', '').lower()
+        # Company branding
+        st.markdown("""
+        <div style='text-align: center; margin-bottom: 30px;'>
+            <h1 style='color: #0052CC; font-size: 36px; margin: 0;'>🏢</h1>
+            <h2 style='color: #0052CC; margin: 10px 0;'>Employee Stress Prediction System</h2>
+            <p style='color: #666; font-size: 14px;'>Machine Learning Based HR Analytics Platform</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Validate features
-        if not isinstance(features, list) or len(features) == 0:
-            return jsonify({
-                'error': 'Features must be a non-empty list of numbers',
-                'status': 'failed'
-            }), 400
+        # Login card
+        st.markdown("""
+        <div style='background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 15px rgba(0,82,204,0.15);'>
+        """, unsafe_allow_html=True)
         
-        # Convert to numpy array
-        features_array = np.array(features).reshape(1, -1)
+        st.markdown("### Login")
         
-        # Select model
-        if use_gender_specific:
-            if gender not in ['male', 'female']:
-                return jsonify({
-                    'error': 'Gender must be "male" or "female" for gender-specific prediction',
-                    'status': 'failed'
-                }), 400
-            
-            if gender == 'male' and male_model is None:
-                return jsonify({
-                    'error': 'Male-specific model not available',
-                    'status': 'failed'
-                }), 503
-            
-            if gender == 'female' and female_model is None:
-                return jsonify({
-                    'error': 'Female-specific model not available',
-                    'status': 'failed'
-                }), 503
-            
-            model = male_model if gender == 'male' else female_model
-            model_type = f'{gender.capitalize()}-specific'
-        else:
-            if general_model is None:
-                return jsonify({
-                    'error': 'General model not loaded',
-                    'status': 'failed'
-                }), 503
-            
-            model = general_model
-            model_type = 'General'
+        username = st.text_input("👤 Username", placeholder="Enter username")
+        password = st.text_input("🔐 Password", type="password", placeholder="Enter password")
         
-        # Make prediction
-        prediction = model.predict(features_array)[0]
-        stress_level = get_stress_level_name(prediction)
+        col1, col2 = st.columns(2)
+        with col1:
+            login_btn = st.button("🔓 Login", use_container_width=True, type="primary")
         
-        # Get probability if available
-        confidence = None
-        probabilities = None
-        if hasattr(model, 'predict_proba'):
-            probs = model.predict_proba(features_array)[0]
-            confidence = float(max(probs))
-            probabilities = {
-                'Low': float(probs[0]),
-                'Medium': float(probs[1]),
-                'High': float(probs[2])
+        if login_btn:
+            if username in VALID_USERS and VALID_USERS[username] == password:
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.success("✅ Login successful! Redirecting...")
+                st.rerun()
+            else:
+                st.error("❌ Invalid credentials")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Demo credentials info
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        **Demo Credentials:**
+        
+        👤 **Admin**
+        - Username: `admin`
+        - Password: `admin123`
+        
+        👥 **HR Manager**
+        - Username: `hr`
+        - Password: `hr123`
+        """)
+
+# ==================== DASHBOARD PAGE ====================
+def show_dashboard(data, model):
+    """Display dashboard with analytics."""
+    st.markdown("""
+    <div class='header-section'>
+        <h1>📊 Dashboard</h1>
+        <p>Employee Stress Analytics & Insights</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if data is None:
+        st.error("❌ Data not available. Please run training first: python train.py")
+        return
+    
+    # KPI Metrics
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    total_emp = len(data)
+    low_stress = len(data[data['Stress_Level'] == 0]) if 'Stress_Level' in data.columns else 0
+    medium_stress = len(data[data['Stress_Level'] == 1]) if 'Stress_Level' in data.columns else 0
+    high_stress = len(data[data['Stress_Level'] == 2]) if 'Stress_Level' in data.columns else 0
+    avg_score = data['Stress_Score'].mean() if 'Stress_Score' in data.columns else 0
+    
+    with col1:
+        st.markdown(f"""
+        <div class='kpi-card'>
+            <h3>Total Employees</h3>
+            <h1>{total_emp}</h1>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class='kpi-card stress-low'>
+            <h3>🟢 Low Stress</h3>
+            <h1>{low_stress}</h1>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+        <div class='kpi-card stress-medium'>
+            <h3>🟡 Medium Stress</h3>
+            <h1>{medium_stress}</h1>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown(f"""
+        <div class='kpi-card stress-high'>
+            <h3>🔴 High Stress</h3>
+            <h1>{high_stress}</h1>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col5:
+        st.markdown(f"""
+        <div class='kpi-card'>
+            <h3>Avg Stress Score</h3>
+            <h1>{avg_score:.2f}</h1>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Charts
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if 'Stress_Level' in data.columns:
+            # Create data with explicit colors for each stress level
+            stress_data = {
+                'Stress Level': ['Low Stress', 'Medium Stress', 'High Stress'],
+                'Count': [
+                    len(data[data['Stress_Level'] == 0]),
+                    len(data[data['Stress_Level'] == 1]),
+                    len(data[data['Stress_Level'] == 2])
+                ]
             }
-        
-        return jsonify({
-            'status': 'success',
-            'timestamp': datetime.now().isoformat(),
-            'prediction': {
-                'stress_level': stress_level,
-                'stress_level_code': int(prediction),
-                'confidence': confidence,
-                'probability_distribution': probabilities
-            },
-            'model_used': model_type,
-            'input_features_count': len(features)
-        }), 200
+            stress_df = pd.DataFrame(stress_data)
+            
+            fig = px.pie(
+                stress_df,
+                values='Count',
+                names='Stress Level',
+                title="Stress Distribution",
+                hole=0.3
+            )
+            # Apply colors directly to pie slices
+            fig.update_traces(
+                marker=dict(colors=['#28A745', '#FF9800', '#F44336'])  # Green, Orange, Red
+            )
+            st.plotly_chart(fig, use_container_width=True)
     
-    except Exception as e:
-        return jsonify({
-            'error': f'Prediction error: {str(e)}',
-            'status': 'failed'
-        }), 500
+    with col2:
+        if 'Gender' in data.columns:
+            gender_counts = data['Gender'].value_counts()
+            gender_labels = ['Male' if x == 0 else 'Female' for x in gender_counts.index]
+            fig = px.bar(
+                x=gender_labels, y=gender_counts.values,
+                title="Employee Distribution by Gender",
+                color=gender_counts.values,
+                color_continuous_scale='Blues'
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
 
-@app.route('/compare-genders', methods=['POST'])
-def compare_genders():
-    """
-    Compare predictions for both male and female models.
+# ==================== PREDICTION PAGE ====================
+def show_prediction_page(model, data):
+    """Display prediction form."""
+    st.markdown("""
+    <div class='header-section'>
+        <h1>🔮 Stress Prediction</h1>
+        <p>Predict employee stress level using ML model</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    Request JSON:
-    {
-        "features": [f1, f2, f3, ...]
-    }
+    if model is None:
+        st.error("❌ Model not available. Please run training first: python train.py")
+        return
     
-    Returns: JSON with predictions from all available models
-    """
-    try:
-        data = request.get_json()
-        
-        if not data or 'features' not in data:
-            return jsonify({
-                'error': 'Missing "features" in request body',
-                'status': 'failed'
-            }), 400
-        
-        features = data.get('features', [])
-        
-        if not isinstance(features, list) or len(features) == 0:
-            return jsonify({
-                'error': 'Features must be a non-empty list of numbers',
-                'status': 'failed'
-            }), 400
-        
-        predictions = {}
-        
-        # General model (21 features with Gender)
-        if general_model is not None:
-            features_array = np.array(features).reshape(1, -1)
-            gen_pred = general_model.predict(features_array)[0]
-            predictions['general'] = {
-                'stress_level': get_stress_level_name(gen_pred),
-                'code': int(gen_pred)
+    st.markdown("### Employee Information")
+    
+    # Two-column layout for form
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        age = st.number_input("Age", min_value=18, max_value=70, value=35)
+        gender = st.selectbox("Gender", ["Male", "Female"])
+        years_company = st.number_input("Years in Company", min_value=0.0, max_value=50.0, value=5.0, step=0.5)
+        prior_exp = st.number_input("Prior Years Experience", min_value=0.0, max_value=50.0, value=3.0, step=0.5)
+        age_when_joined = age - years_company
+    
+    with col2:
+        salary = st.number_input("Salary (₹)", min_value=20000, max_value=500000, value=60000, step=5000)
+        bonus = st.number_input("Annual Bonus (₹)", min_value=0.0, max_value=100000.0, value=5000.0, step=1000.0)
+        heart_rate = st.number_input("Resting Heart Rate (BPM)", min_value=40, max_value=120, value=75)
+        company = st.selectbox("Company", [0, 1, 2])
+    
+    st.markdown("---")
+    
+    if st.button("🔮 Predict Stress Level", use_container_width=True, type="primary"):
+        try:
+            # ==================== FEATURE ENGINEERING ====================
+            # Using exact same methodology as training
+            
+            # 1. Workload_Score
+            max_years = data['years_in_the_company'].max() if 'years_in_the_company' in data.columns else 50
+            workload_score = (years_company / max_years) * 10
+            
+            # 2. Experience_Pressure
+            experience_pressure = max(years_company - prior_exp, 0)
+            
+            # 3. HeartRate_Stress
+            min_hr = data['Resting_Heart_Rate'].min() if 'Resting_Heart_Rate' in data.columns else 40
+            max_hr = data['Resting_Heart_Rate'].max() if 'Resting_Heart_Rate' in data.columns else 120
+            heart_rate_stress = ((heart_rate - min_hr) / (max_hr - min_hr)) * 10 if max_hr != min_hr else 0
+            
+            # 4. Stress_Score
+            stress_score = 0.4 * workload_score + 0.3 * experience_pressure + 0.3 * heart_rate_stress
+            
+            # 5. Stress_Level (for reference)
+            if stress_score < 3:
+                stress_level_text = "Low"
+                stress_level_color = "🟢"
+                stress_level_class = "stress-low"
+            elif stress_score < 6:
+                stress_level_text = "Medium"
+                stress_level_color = "🟡"
+                stress_level_class = "stress-medium"
+            else:
+                stress_level_text = "High"
+                stress_level_color = "🔴"
+                stress_level_class = "stress-high"
+            
+            # ==================== PREPARE FEATURES FOR MODEL ====================
+            # Build feature array with 19 features (matching training data structure)
+            # Feature order: employee_id, age, age_when_joined, years_in_the_company, salary, 
+            # annual_bonus, prior_years_experience, Gender, Resting_Heart_Rate,
+            # company_Glasses, company_Pear, department_BigData, department_Design,
+            # department_Sales, department_Search Engine, department_Support,
+            # Workload_Score, Experience_Pressure, HeartRate_Stress
+            
+            features = np.array([[
+                0,  # employee_id (0 for new predictions)
+                age,
+                age_when_joined,
+                years_company,
+                salary,
+                bonus,
+                prior_exp,
+                1 if gender == "Female" else 0,  # Gender (0=Male, 1=Female)
+                heart_rate,
+                1 if company == 0 else 0,  # company_Glasses
+                1 if company == 1 else 0,  # company_Pear
+                0,  # department_BigData (set to 0 for implicit reference category)
+                0,  # department_Design
+                0,  # department_Sales
+                0,  # department_Search Engine
+                0,  # department_Support
+                workload_score,
+                experience_pressure,
+                heart_rate_stress
+            ]])
+            
+            # ==================== MAKE PREDICTION ====================
+            prediction = model.predict(features)[0]
+            probabilities = model.predict_proba(features)[0]
+            
+            # Store in session
+            st.session_state.last_prediction = {
+                'age': age,
+                'gender': gender,
+                'years_company': years_company,
+                'salary': salary,
+                'heart_rate': heart_rate,
+                'stress_score': stress_score,
+                'stress_level': stress_level_text,
+                'prediction': prediction,
+                'probabilities': probabilities,
+                'timestamp': datetime.now()
             }
-        
-        # Gender-specific models (20 features without Gender)
-        # Remove Gender column (first feature) for gender-specific models
-        if len(features) >= 21:
-            features_without_gender = features[1:]  # Remove Gender column (index 0)
-            features_array = np.array(features_without_gender).reshape(1, -1)
             
-            # Male model
-            if male_model is not None:
-                male_pred = male_model.predict(features_array)[0]
-                predictions['male_specific'] = {
-                    'stress_level': get_stress_level_name(male_pred),
-                    'code': int(male_pred)
+            # ==================== DISPLAY RESULTS ====================
+            st.markdown("---")
+            st.markdown("### 📈 Prediction Results")
+            
+            # Result cards
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown(f"""
+                <div class='kpi-card {stress_level_class}'>
+                    <h3>Predicted Stress Level</h3>
+                    <h1>{stress_level_color} {stress_level_text}</h1>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.metric("Stress Score", f"{stress_score:.2f}/10")
+            
+            with col3:
+                confidence = max(probabilities) * 100
+                st.metric("Confidence", f"{confidence:.1f}%")
+            
+            st.markdown("---")
+            
+            # Gauge chart
+            st.markdown("### 📊 Stress Level Gauge")
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=stress_score,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "Stress Score (0-10)"},
+                gauge={
+                    'axis': {'range': [None, 10]},
+                    'bar': {'color': "darkblue"},
+                    'steps': [
+                        {'range': [0, 3], 'color': "#28A745"},
+                        {'range': [3, 6], 'color': "#FF9800"},
+                        {'range': [6, 10], 'color': "#F44336"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "red", 'width': 4},
+                        'thickness': 0.75,
+                        'value': stress_score
+                    }
                 }
+            ))
+            fig.update_layout(height=400)
+            st.plotly_chart(fig, use_container_width=True)
             
-            # Female model
-            if female_model is not None:
-                female_pred = female_model.predict(features_array)[0]
-                predictions['female_specific'] = {
-                    'stress_level': get_stress_level_name(female_pred),
-                    'code': int(female_pred)
-                }
-        
-        return jsonify({
-            'status': 'success',
-            'timestamp': datetime.now().isoformat(),
-            'predictions': predictions,
-            'input_features_count': len(features),
-            'note': 'General model uses 21 features (with Gender), gender-specific models use 20 features (without Gender)'
-        }), 200
-    
-    except Exception as e:
-        return jsonify({
-            'error': f'Comparison error: {str(e)}',
-            'status': 'failed'
-        }), 500
-
-
-@app.route('/batch-predict', methods=['POST'])
-def batch_predict():
-    """
-    Make predictions for multiple samples.
-    
-    Request JSON:
-    {
-        "samples": [[f1, f2, ...], [f1, f2, ...], ...],
-        "use_gender_specific": false,
-        "gender": "male" or "female"
-    }
-    
-    Returns: JSON with predictions for all samples
-    """
-    try:
-        data = request.get_json()
-        
-        if not data or 'samples' not in data:
-            return jsonify({
-                'error': 'Missing "samples" in request body',
-                'status': 'failed'
-            }), 400
-        
-        samples = data.get('samples', [])
-        
-        if not isinstance(samples, list) or len(samples) == 0:
-            return jsonify({
-                'error': 'Samples must be a non-empty list',
-                'status': 'failed'
-            }), 400
-        
-        # Convert to numpy array
-        features_array = np.array(samples)
-        
-        # Select model
-        use_gender_specific = data.get('use_gender_specific', False)
-        gender = data.get('gender', '').lower()
-        
-        if use_gender_specific:
-            if gender == 'male' and male_model is None:
-                return jsonify({'error': 'Male-specific model not available'}), 503
-            if gender == 'female' and female_model is None:
-                return jsonify({'error': 'Female-specific model not available'}), 503
+            st.markdown("---")
             
-            model = male_model if gender == 'male' else female_model
-        else:
-            if general_model is None:
-                return jsonify({'error': 'General model not loaded'}), 503
-            model = general_model
+            # Recommendations
+            st.markdown("### 💡 HR Recommendation")
+            
+            if stress_level_text == "Low":
+                st.markdown("""
+                <div class='recommendation-box'>
+                <h4>✅ Employee Status: Healthy</h4>
+                
+                **Actions:**
+                - Continue current work arrangement
+                - Recognize and reward good performance
+                - Support career development opportunities
+                - Maintain regular check-ins
+                </div>
+                """, unsafe_allow_html=True)
+            
+            elif stress_level_text == "Medium":
+                st.markdown("""
+                <div class='recommendation-box'>
+                <h4>⚠️ Monitor Required</h4>
+                
+                **Actions:**
+                - Reduce workload where possible
+                - Offer wellness programs and activities
+                - Schedule one-on-one meetings with manager
+                - Consider flexible work arrangements
+                </div>
+                """, unsafe_allow_html=True)
+            
+            else:
+                st.markdown("""
+                <div class='recommendation-box'>
+                <h4>🚨 Intervention Required</h4>
+                
+                **Actions:**
+                - Schedule urgent meeting with HR department
+                - Offer mental health counseling services
+                - Consider temporary workload reduction
+                - Explore mentoring and support programs
+                </div>
+                """, unsafe_allow_html=True)
         
-        # Make predictions
-        predictions_list = model.predict(features_array)
+        except Exception as e:
+            st.error(f"❌ Prediction error: {e}")
+
+# ==================== REPORTS PAGE ====================
+def show_reports_page():
+    """Display report download options."""
+    st.markdown("""
+    <div class='header-section'>
+        <h1>📁 Download Reports</h1>
+        <p>Export prediction reports and employee data</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.session_state.last_prediction is None:
+        st.info("ℹ️ No predictions yet. Go to Stress Prediction to make a prediction.")
+        return
+    
+    pred = st.session_state.last_prediction
+    
+    st.markdown("### 📊 Generate Report")
+    
+    col1, col2 = st.columns(2)
+    
+    # CSV Report
+    with col1:
+        if st.button("📥 Download as CSV", use_container_width=True):
+            report_data = {
+                'Date': [pred['timestamp'].strftime('%Y-%m-%d %H:%M:%S')],
+                'Age': [pred['age']],
+                'Gender': [pred['gender']],
+                'Years in Company': [pred['years_company']],
+                'Salary': [pred['salary']],
+                'Heart Rate': [pred['heart_rate']],
+                'Stress Score': [f"{pred['stress_score']:.2f}"],
+                'Stress Level': [pred['stress_level']],
+                'Confidence': [f"{max(pred['probabilities'])*100:.1f}%"]
+            }
+            
+            df_report = pd.DataFrame(report_data)
+            csv = df_report.to_csv(index=False)
+            
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv,
+                file_name=f"stress_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+    
+    # Excel Report
+    with col2:
+        if st.button("📊 Download as Excel", use_container_width=True):
+            report_data = {
+                'Date': [pred['timestamp'].strftime('%Y-%m-%d %H:%M:%S')],
+                'Age': [pred['age']],
+                'Gender': [pred['gender']],
+                'Years in Company': [pred['years_company']],
+                'Salary': [pred['salary']],
+                'Heart Rate': [pred['heart_rate']],
+                'Stress Score': [f"{pred['stress_score']:.2f}"],
+                'Stress Level': [pred['stress_level']],
+                'Confidence': [f"{max(pred['probabilities'])*100:.1f}%"]
+            }
+            
+            df_report = pd.DataFrame(report_data)
+            
+            buffer = BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df_report.to_excel(writer, index=False, sheet_name='Prediction')
+            buffer.seek(0)
+            
+            st.download_button(
+                label="📊 Download Excel",
+                data=buffer.getvalue(),
+                file_name=f"stress_prediction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    
+    st.markdown("---")
+    
+    # Display report preview
+    st.markdown("### 📋 Report Preview")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write(f"**Date:** {pred['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}")
+        st.write(f"**Age:** {pred['age']} years")
+        st.write(f"**Gender:** {pred['gender']}")
+        st.write(f"**Years in Company:** {pred['years_company']} years")
+    
+    with col2:
+        st.write(f"**Salary:** ₹{pred['salary']:,.0f}")
+        st.write(f"**Heart Rate:** {pred['heart_rate']} BPM")
+        st.write(f"**Stress Score:** {pred['stress_score']:.2f}/10")
+        st.write(f"**Stress Level:** {pred['stress_level']}")
+
+# ==================== MAIN APP ====================
+def main():
+    """Main application flow."""
+    
+    if not st.session_state.logged_in:
+        show_login_page()
+    else:
+        # Load data and models
+        data, model = load_data_and_models()
         
-        results = []
-        for pred in predictions_list:
-            results.append({
-                'stress_level': get_stress_level_name(pred),
-                'code': int(pred)
-            })
+        # Sidebar
+        st.sidebar.markdown("---")
+        st.sidebar.title(f"👤 {st.session_state.username.upper()}")
+        st.sidebar.markdown(f"*Logged in*")
+        st.sidebar.markdown("---")
         
-        return jsonify({
-            'status': 'success',
-            'timestamp': datetime.now().isoformat(),
-            'predictions': results,
-            'total_samples': len(results)
-        }), 200
-    
-    except Exception as e:
-        return jsonify({
-            'error': f'Batch prediction error: {str(e)}',
-            'status': 'failed'
-        }), 500
+        # Navigation
+        page = st.sidebar.radio(
+            "Navigation",
+            ["📊 Dashboard", "🔮 Stress Prediction", "📁 Reports"],
+            label_visibility="collapsed"
+        )
+        
+        st.sidebar.markdown("---")
+        
+        if st.sidebar.button("🚪 Logout", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.username = None
+            st.rerun()
+        
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("""
+        **Employee Stress Prediction System**
+        
+        Version: 1.0
+        
+        ML-Based HR Analytics Platform
+        """)
+        
+        # Route pages
+        if page == "📊 Dashboard":
+            show_dashboard(data, model)
+        elif page == "🔮 Stress Prediction":
+            show_prediction_page(model, data)
+        elif page == "📁 Reports":
+            show_reports_page()
 
+if __name__ == "__main__":
+    main()
 
-@app.route('/dashboard', methods=['GET'])
-def dashboard():
-    """Serve the web dashboard."""
-    try:
-        return send_file('dashboard.html')
-    except FileNotFoundError:
-        return jsonify({
-            'error': 'Dashboard file not found. Make sure dashboard.html is in the project root.',
-            'status': 'failed'
-        }), 404
-
-
-@app.route('/', methods=['GET'])
-def home():
-    """Root endpoint with API documentation."""
-    return jsonify({
-        'api_name': 'Employee Stress Prediction API',
-        'version': '1.0',
-        'description': 'REST API for predicting employee stress levels',
-        'available_endpoints': {
-            'GET /': 'This endpoint',
-            'GET /health': 'Check API health status',
-            'GET /model-info': 'Get model information',
-            'GET /dashboard': 'Open web dashboard (UI)',
-            'POST /predict': 'Make a single prediction',
-            'POST /batch-predict': 'Make predictions for multiple samples',
-            'POST /compare-genders': 'Compare male and female model predictions'
-        },
-        'quick_start': 'Visit http://localhost:5000/dashboard for the web interface'
-    }), 200
-
-
-@app.errorhandler(404)
-def not_found(error):
-    """Handle 404 errors."""
-    return jsonify({
-        'error': 'Endpoint not found',
-        'status': 'failed',
-        'available_endpoints': [
-            '/health',
-            '/model-info',
-            '/predict',
-            '/batch-predict',
-            '/compare-genders'
-        ]
-    }), 404
-
-
-@app.errorhandler(500)
-def internal_error(error):
-    """Handle 500 errors."""
-    return jsonify({
-        'error': 'Internal server error',
-        'status': 'failed'
-    }), 500
-
-
-if __name__ == '__main__':
-    # Load models on startup
-    print("Loading models...")
-    load_models()
-    
-    # Start the Flask app
-    print("\n" + "="*50)
-    print("Employee Stress Prediction API")
-    print("="*50)
-    print("\n🌐 Web Dashboard: http://localhost:5000/dashboard")
-    print("📡 API Base URL: http://localhost:5000")
-    print("\n📍 Quick Access:")
-    print("  • Dashboard (UI):  http://localhost:5000/dashboard")
-    print("  • API Health:      http://localhost:5000/health")
-    print("  • Model Info:      http://localhost:5000/model-info")
-    print("\n📚 API Endpoints:")
-    print("  • POST /predict           - Single prediction")
-    print("  • POST /batch-predict     - Multiple predictions")
-    print("  • POST /compare-genders   - Compare models")
-    print("\n⏹️  Press Ctrl+C to stop the server")
-    print("="*50 + "\n")
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
