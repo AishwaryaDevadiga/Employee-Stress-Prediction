@@ -130,7 +130,7 @@ Workload_Score = (Years_in_Company / Max_Years) * 10
 
 Experience_Pressure = max(Years_in_Company - Prior_Experience, 0)
 
-HeartRate_Stress = ((Resting_Heart_Rate - 40) / (200 - 40)) * 10
+HeartRate_Stress = ((Resting_Heart_Rate - 60) / (120 - 60)) * 10
 
 Stress_Score = 0.4*Workload + 0.3*Experience + 0.3*HeartRate
 ```

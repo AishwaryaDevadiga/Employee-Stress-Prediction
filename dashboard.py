@@ -374,15 +374,42 @@ def main():
             with col2:
                 salary = st.number_input("Salary", min_value=20000, max_value=200000, value=60000, step=1000)
                 bonus = st.number_input("Annual Bonus", min_value=0.0, max_value=50000.0, value=5000.0, step=500.0)
-                heart_rate = st.number_input("Resting Heart Rate (BPM)", min_value=40, max_value=120, value=75)
+                heart_rate = st.number_input("Resting Heart Rate (BPM)", min_value=40, max_value=200, value=75)
                 company = st.selectbox("Company", list(range(4)))
             
             if st.button("🔮 Predict Stress Level", key="predict_single"):
+                if heart_rate < 60:
+                    st.warning("Warning: Heart rate is below the normal resting range (60 BPM). Please verify the value or consult a healthcare professional.")
+                    return
+                elif heart_rate > 120:
+                    st.warning("Warning: Heart rate exceeds the maximum supported range (120 BPM). Please verify the value or consult a healthcare professional.")
+                    return
+                    
+                # Show color-coded status card
+                if 60 <= heart_rate <= 75:
+                    st.markdown("""
+                    <div style='background-color: #10b981; padding: 15px; border-radius: 8px; color: white; text-align: center; font-weight: bold; margin-bottom: 20px;'>
+                        Heart Rate Status: Low Stress Zone
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif 76 <= heart_rate <= 95:
+                    st.markdown("""
+                    <div style='background-color: #f59e0b; padding: 15px; border-radius: 8px; color: white; text-align: center; font-weight: bold; margin-bottom: 20px;'>
+                        Heart Rate Status: Medium Stress Zone
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div style='background-color: #ef4444; padding: 15px; border-radius: 8px; color: white; text-align: center; font-weight: bold; margin-bottom: 20px;'>
+                        Heart Rate Status: High Stress Zone
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
                 # Prepare features (19 features matching training data structure)
                 age_when_joined = age - years_company
                 workload_score = (years_company / 10) * 10
                 experience_pressure = max(years_company - prior_exp, 0)
-                heart_rate_stress = ((heart_rate - 40) / (200 - 40)) * 10
+                heart_rate_stress = ((heart_rate - 60) / (120 - 60)) * 10
                 
                 features = np.array([[
                     0,  # employee_id
@@ -413,16 +440,88 @@ def main():
                     stress_levels = ['Low Stress', 'Medium Stress', 'High Stress']
                     predicted_level = stress_levels[int(prediction)]
                     
-                    st.success(f"### Predicted Stress Level: {stress_level_color(stress_levels[int(prediction)].split()[0])} {predicted_level}")
+                    # 1. Heart Rate Assessment
+                    st.markdown("### 1. Heart Rate Assessment")
                     
-                    # Probability distribution
+                    if 60 <= heart_rate <= 75:
+                        hr_zone_text = "Low Stress Zone"
+                        hr_emoji = "🟢"
+                        hr_color = "#10b981"
+                    elif 76 <= heart_rate <= 95:
+                        hr_zone_text = "Medium Stress Zone"
+                        hr_emoji = "🟠"
+                        hr_color = "#f59e0b"
+                    else:
+                        hr_zone_text = "High Stress Zone"
+                        hr_emoji = "🔴"
+                        hr_color = "#ef4444"
+                        
+                    st.markdown(f"""
+                    <div style='background-color: {hr_color}; padding: 15px; border-radius: 8px; color: white; text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 20px;'>
+                        {hr_emoji} {hr_zone_text} ({heart_rate} BPM)
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 2. Machine Learning Prediction
+                    st.markdown("### 2. Machine Learning Prediction")
+                    
                     col1, col2, col3 = st.columns(3)
+                    
+                    colors = {'Low': '#10b981', 'Medium': '#f59e0b', 'High': '#ef4444'}
+                    icons = {'Low': '🟢', 'Medium': '🟡', 'High': '🔴'}
+                    pred_label = predicted_level.split()[0]
+                    
                     with col1:
-                        st.metric("Low Stress", f"{probability[0]*100:.1f}%")
+                        st.markdown(f"""
+                        <div style='background: linear-gradient(135deg, {colors[pred_label]} 0%, {colors[pred_label]} 100%); padding: 20px; border-radius: 12px; color: white; text-align: center; font-weight: bold;'>
+                            <h4 style='margin: 0; font-size: 14px; opacity: 0.9;'>Predicted Stress Level</h4>
+                            <h2 style='margin: 10px 0 0 0; font-size: 24px;'>{icons[pred_label]} {pred_label} Stress</h2>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
                     with col2:
-                        st.metric("Medium Stress", f"{probability[1]*100:.1f}%")
+                        stress_score = workload_score * 0.4 + experience_pressure * 0.3 + heart_rate_stress * 0.3
+                        st.metric("Stress Score", f"{stress_score:.2f}/10")
+                    
                     with col3:
-                        st.metric("High Stress", f"{probability[2]*100:.1f}%")
+                        confidence = max(probability) * 100
+                        st.metric("Confidence Score", f"{confidence:.1f}%")
+                        
+                    # 3. Prediction Explanation
+                    st.markdown("---")
+                    st.markdown("### 3. Prediction Explanation")
+                    
+                    col_exp1, col_exp2, col_exp3 = st.columns(3)
+                    with col_exp1:
+                        st.metric("Workload Score", f"{workload_score:.2f}/10")
+                    with col_exp2:
+                        st.metric("Experience Pressure", f"{experience_pressure:.2f}")
+                    with col_exp3:
+                        st.metric("Heart Rate Stress", f"{heart_rate_stress:.2f}/10")
+                        
+                    st.markdown("#### Factor Contribution Analysis")
+                    
+                    # Compute contribution breakdown
+                    workload_contrib = 0.4 * workload_score
+                    experience_contrib = 0.3 * experience_pressure
+                    hr_contrib = 0.3 * heart_rate_stress
+                    
+                    # Check for the specific Low HR Zone + Medium Stress prediction condition
+                    if (60 <= heart_rate <= 75) and (pred_label == "Medium"):
+                        explanation_text = "Although the heart rate is in the Low Stress Zone, the overall machine learning model predicted Medium Stress because workload and experience pressure contributed to the final stress score."
+                    else:
+                        contribs = {
+                            "Workload Score": workload_contrib,
+                            "Experience Pressure": experience_contrib,
+                            "Heart Rate Stress": hr_contrib
+                        }
+                        max_factor = max(contribs, key=contribs.get)
+                        explanation_text = f"The primary factor contributing to the final prediction is **{max_factor}** (contribution: {contribs[max_factor]:.2f}). "
+                        explanation_text += f"Breakdown of weighted stress score contributions: Workload Score ({workload_contrib:.2f}), Experience Pressure ({experience_contrib:.2f}), and Heart Rate Stress ({hr_contrib:.2f})."
+                        
+                    st.info(explanation_text)
+                    
+                    st.markdown("---")
                     
                     # Recommendation
                     rec = get_recommendation(predicted_level.split()[0])
@@ -461,7 +560,7 @@ def main():
                                 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                 (years / 10) * 10,
                                 max(years - row.get('prior_experience', 3), 0),
-                                ((row.get('heart_rate', 75) - 40) / (200 - 40)) * 10
+                                ((row.get('heart_rate', 75) - 60) / (120 - 60)) * 10
                             ]])
                             
                             pred = models['general'].predict(features)[0]
