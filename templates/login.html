@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Sign In - Stressify{% endblock %}
+
+{% block public_content %}
+<div class="landing-hero d-flex align-items-center justify-content-center">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <!-- Login form panel -->
+                <div class="glass-panel p-5">
+                    <div class="text-center mb-4">
+                        <span class="fs-1 text-primary"><i class="fas fa-unlock-alt"></i></span>
+                        <h2 class="font-weight-bold mt-2">Welcome Back</h2>
+                        <p class="text-secondary">Sign in to your Stressify account</p>
+                    </div>
+
+                    <!-- Flash messages inside panel -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else category }} alert-custom alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form action="{{ url_for('login') }}" method="POST" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope text-secondary"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" required placeholder="name@company.com">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock text-secondary"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required placeholder="••••••••">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-custom-primary btn-custom w-100 py-3 mb-3">
+                            Sign In <i class="fas fa-sign-in-alt ms-2"></i>
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <span class="text-secondary">Don't have an account?</span>
+                        <a href="{{ url_for('register') }}" class="font-weight-bold text-decoration-none">Sign Up</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

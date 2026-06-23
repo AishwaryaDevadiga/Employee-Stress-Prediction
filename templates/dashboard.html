@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Predict Stress - Stressify{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Input Form Column -->
+    <div class="col-lg-6 mb-4">
+        <div class="glass-panel p-4 h-100">
+            <h4 class="font-weight-bold mb-3 text-indigo" style="color: var(--primary-color);">
+                <i class="fas fa-keyboard me-2"></i>Employee Information
+            </h4>
+            <p class="text-secondary small mb-4">Provide accurate values below to run the stress prediction model.</p>
+            
+            <!-- Real-time heart rate validation alert -->
+            <div id="hr-warning-alert" class="d-none"></div>
+
+            <form action="{{ url_for('user_dashboard') }}" method="POST">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="age" class="form-label">Age</label>
+                        <input type="number" class="form-control" id="age" name="age" min="18" max="70" value="35" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="gender" class="form-label">Gender</label>
+                        <select class="form-select" id="gender" name="gender">
+                            <option value="Male" selected>Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="company" class="form-label">Company</label>
+                        <select class="form-select" id="company" name="company">
+                            <option value="0" selected>Glasses (Company 0)</option>
+                            <option value="1">Pear (Company 1)</option>
+                            <option value="2">Cheerper (Company 2)</option>
+                            <option value="3">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="department" class="form-label">Department</label>
+                        <select class="form-select" id="department" name="department">
+                            <option value="BigData" selected>Big Data</option>
+                            <option value="Design">Design</option>
+                            <option value="Sales">Sales</option>
+                            <option value="SearchEngine">Search Engine</option>
+                            <option value="Support">Support</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="years_in_company" class="form-label">Years in Company</label>
+                        <input type="number" class="form-control" id="years_in_company" name="years_in_company" min="0" max="50" step="0.5" value="5.0" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="prior_experience" class="form-label">Prior Experience (Years)</label>
+                        <input type="number" class="form-control" id="prior_experience" name="prior_experience" min="0" max="50" step="0.5" value="3.0" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="salary" class="form-label">Salary (₹)</label>
+                        <input type="number" class="form-control" id="salary" name="salary" min="20000" max="500000" step="1000" value="60000" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="annual_bonus" class="form-label">Annual Bonus (₹)</label>
+                        <input type="number" class="form-control" id="annual_bonus" name="annual_bonus" min="0" max="100000" step="500" value="5000" required>
+                    </div>
+                    <div class="col-12">
+                        <label for="resting_heart_rate" class="form-label">Resting Heart Rate (BPM)</label>
+                        <input type="number" class="form-control" id="resting_heart_rate" name="resting_heart_rate" min="40" max="200" value="75" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-custom-primary btn-custom w-100 py-3 mt-4">
+                    <i class="fas fa-magic me-2"></i>Predict Stress Level
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Prediction Results Column -->
+    <div class="col-lg-6 mb-4">
+        <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h4 class="font-weight-bold mb-3 text-indigo" style="color: var(--primary-color);">
+                    <i class="fas fa-stethoscope me-2"></i>Analysis Output
+                </h4>
+
+                {% if result %}
+                <!-- 1. Heart Rate Assessment -->
+                <div class="mb-4">
+                    <h5 class="font-weight-bold text-secondary-emphasis mb-2">1. Heart Rate Assessment</h5>
+                    {% if result.heart_rate >= 60 and result.heart_rate <= 80 %}
+                        <div class="result-display-card low">
+                            <div class="result-title">Heart Rate Status</div>
+                            <div class="result-level">🟢 Low Stress Zone</div>
+                            <small class="d-block mt-1">Normal Resting Heart Rate: {{ result.heart_rate }} BPM</small>
+                        </div>
+                    {% elif result.heart_rate >= 81 and result.heart_rate <= 100 %}
+                        <div class="result-display-card medium">
+                            <div class="result-title">Heart Rate Status</div>
+                            <div class="result-level">🟡 Medium Stress Zone</div>
+                            <small class="d-block mt-1">Elevated Heart Rate: {{ result.heart_rate }} BPM</small>
+                        </div>
+                    {% else %}
+                        <div class="result-display-card high">
+                            <div class="result-title">Heart Rate Status</div>
+                            <div class="result-level">🔴 High Stress Zone</div>
+                            <small class="d-block mt-1">Tachycardia Warning: {{ result.heart_rate }} BPM</small>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- 2. Machine Learning Prediction -->
+                <div class="mb-4">
+                    <h5 class="font-weight-bold text-secondary-emphasis mb-3">2. Machine Learning Prediction</h5>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <div class="p-3 text-center border rounded-3 bg-light-subtle h-100 d-flex flex-column justify-content-center">
+                                <small class="text-secondary d-block mb-1">Stress Level</small>
+                                <div>
+                                    <span class="badge bg-{{ 'success' if result.predicted_stress == 'Low' else 'warning text-dark' if result.predicted_stress == 'Medium' else 'danger' }} fs-6">
+                                        {{ result.predicted_stress }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 text-center border rounded-3 bg-light-subtle h-100 d-flex flex-column justify-content-center">
+                                <small class="text-secondary d-block mb-1">Stress Score</small>
+                                <strong class="fs-5">{{ "%.2f"|format(result.stress_score) }}/10</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 text-center border rounded-3 bg-light-subtle h-100 d-flex flex-column justify-content-center">
+                                <small class="text-secondary d-block mb-1">Confidence</small>
+                                <strong class="fs-5">{{ "%.1f"|format(result.confidence_score) }}%</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Probability Breakdown -->
+                    <div class="mt-3">
+                        <small class="text-secondary d-block mb-1 font-weight-bold">Probability Breakdown:</small>
+                        <div class="progress" style="height: 18px; border-radius: 6px; font-size: 11px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ result.prob_low }}%;" aria-valuenow="{{ result.prob_low }}" aria-valuemin="0" aria-valuemax="100">Low: {{ "%.1f"|format(result.prob_low) }}%</div>
+                            <div class="progress-bar bg-warning text-dark" role="progressbar" style="width: {{ result.prob_medium }}%;" aria-valuenow="{{ result.prob_medium }}" aria-valuemin="0" aria-valuemax="100">Medium: {{ "%.1f"|format(result.prob_medium) }}%</div>
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ result.prob_high }}%;" aria-valuenow="{{ result.prob_high }}" aria-valuemin="0" aria-valuemax="100">High: {{ "%.1f"|format(result.prob_high) }}%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Prediction Explanation -->
+                <div class="mb-4">
+                    <h5 class="font-weight-bold text-secondary-emphasis mb-3">3. Prediction Explanation</h5>
+                    <div class="row g-2 mb-3 text-center">
+                        <div class="col-4">
+                            <small class="text-secondary d-block">Workload Score</small>
+                            <span class="badge bg-secondary">{{ "%.2f"|format(result.workload_score) }}/10</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-secondary d-block">Exp. Pressure</small>
+                            <span class="badge bg-secondary">{{ "%.2f"|format(result.experience_pressure) }}</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-secondary d-block">HR Stress</small>
+                            <span class="badge bg-secondary">{{ "%.2f"|format(result.heart_rate_stress) }}/10</span>
+                        </div>
+                    </div>
+                    <div class="alert alert-info border-0 rounded-3 p-3">
+                        <h6 class="font-weight-bold mb-1"><i class="fas fa-info-circle me-1"></i>Analysis Detail:</h6>
+                        <small class="d-block">{{ result.explanation }}</small>
+                    </div>
+
+                    <!-- Transparency Panel (Section G) -->
+                    <div class="card bg-light border-0 rounded-3 p-3 mt-3">
+                        <h6 class="font-weight-bold mb-2 text-indigo" style="color: var(--primary-color); font-size: 13px;">
+                            <i class="fas fa-eye me-1"></i>Why was this prediction made? (Transparency Panel)
+                        </h6>
+                        <div class="row text-center small">
+                            <div class="col-4 border-end">
+                                <span class="text-secondary d-block">Workload</span>
+                                <strong class="text-dark fs-6">{{ "%.0f"|format(result.contrib_workload) }}%</strong>
+                            </div>
+                            <div class="col-4 border-end">
+                                <span class="text-secondary d-block">Experience</span>
+                                <strong class="text-dark fs-6">{{ "%.0f"|format(result.contrib_experience) }}%</strong>
+                            </div>
+                            <div class="col-4">
+                                <span class="text-secondary d-block">Heart Rate</span>
+                                <strong class="text-dark fs-6">{{ "%.0f"|format(result.contrib_heart_rate) }}%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-5 my-auto">
+                    <div class="fs-1 text-secondary opacity-25 mb-3">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h5 class="text-secondary font-weight-bold">Ready for Prediction</h5>
+                    <p class="text-secondary-50 small px-4">Submit the employee details form to execute the Machine Learning classifier and view recommendations.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if result %}
+            <div class="d-flex gap-2 mt-3 pt-3 border-top">
+                <a href="{{ url_for('download_pdf', pred_id=result.prediction_id) }}" class="btn btn-outline-danger btn-custom flex-fill">
+                    <i class="fas fa-file-pdf me-2"></i>Save as PDF
+                </a>
+                <a href="{{ url_for('user_history') }}" class="btn btn-outline-secondary btn-custom flex-fill">
+                    <i class="fas fa-history me-2"></i>View History
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

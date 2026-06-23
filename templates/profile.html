@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}My Profile - Stressify{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="glass-panel p-4">
+            <div class="text-center pb-4 mb-4 border-bottom">
+                <span class="fs-1 text-primary"><i class="fas fa-user-circle"></i></span>
+                <h3 class="font-weight-bold mt-2 mb-1">{{ current_user.name }}</h3>
+                <span class="badge bg-secondary px-3 py-1.5 fs-6">{{ current_user.role }} Account</span>
+            </div>
+
+            <div class="row g-4">
+                <!-- User Information -->
+                <div class="col-md-6">
+                    <h5 class="font-weight-bold text-secondary-emphasis mb-3">
+                        <i class="fas fa-id-card me-2 text-indigo"></i>Account Details
+                    </h5>
+                    <ul class="list-group list-group-flush bg-transparent">
+                        <li class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+                            <span class="text-secondary">Name:</span>
+                            <strong>{{ current_user.name }}</strong>
+                        </li>
+                        <li class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+                            <span class="text-secondary">Email Address:</span>
+                            <strong>{{ current_user.email }}</strong>
+                        </li>
+                        <li class="list-group-item bg-transparent px-0 d-flex justify-content-between">
+                            <span class="text-secondary">Member Since:</span>
+                            <strong>{{ current_user.created_at.strftime('%B %d, %Y') }}</strong>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Account Activity -->
+                <div class="col-md-6 border-start-md">
+                    <h5 class="font-weight-bold text-secondary-emphasis mb-3">
+                        <i class="fas fa-activity me-2 text-indigo"></i>Telemetry Summary
+                    </h5>
+                    <div class="p-3 border rounded-3 bg-light-subtle shadow-sm mb-3">
+                        <small class="text-secondary d-block">Total Predictions Made</small>
+                        <h4 class="font-weight-bold mb-0 text-primary">{{ predictions|length if predictions else 0 }}</h4>
+                    </div>
+
+                    {% if predictions %}
+                    {% set latest = predictions[0] %}
+                    <div class="p-3 border rounded-3 bg-light-subtle shadow-sm">
+                        <small class="text-secondary d-block">Latest Prediction Date</small>
+                        <strong class="text-secondary-emphasis">{{ latest.prediction_date.strftime('%Y-%m-%d %H:%M') }}</strong>
+                        <div class="mt-2">
+                            <span class="badge bg-{{ 'success' if latest.predicted_stress == 'Low' else 'warning' if latest.predicted_stress == 'Medium' else 'danger' }}">
+                                {{ latest.predicted_stress }} Stress
+                            </span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 border border-dashed rounded-3 opacity-75">
+                        <small class="text-secondary">No predictions recorded yet.</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

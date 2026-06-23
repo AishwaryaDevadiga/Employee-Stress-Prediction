@@ -115,9 +115,9 @@ def create_stress_score(df):
     
     if all(feature in df.columns for feature in required_features):
         df['Stress_Score'] = (
-            0.4 * df['Workload_Score'] +
-            0.3 * df['Experience_Pressure'] +
-            0.3 * df['HeartRate_Stress']
+            0.30 * df['Workload_Score'] +
+            0.20 * df['Experience_Pressure'] +
+            0.50 * df['HeartRate_Stress']
         )
         print(f"✓ Created 'Stress_Score' feature")
     else:
@@ -147,9 +147,9 @@ def create_stress_level(df, score_column='Stress_Score'):
     """
     if score_column in df.columns:
         def assign_stress_level(score):
-            if score < 3:
+            if score <= 3.5:
                 return 0  # Low
-            elif score < 6:
+            elif score <= 6.5:
                 return 1  # Medium
             else:
                 return 2  # High

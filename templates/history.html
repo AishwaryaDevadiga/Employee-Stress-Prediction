@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Prediction History - Stressify{% endblock %}
+
+{% block content %}
+<div class="glass-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="font-weight-bold mb-1 text-indigo" style="color: var(--primary-color);">
+                <i class="fas fa-history me-2"></i>Prediction History Log
+            </h4>
+            <p class="text-secondary small mb-0">Review all historical stress predictions processed under your account.</p>
+        </div>
+        {% if predictions %}
+        <a href="{{ url_for('export_csv') }}" class="btn btn-custom btn-custom-primary">
+            <i class="fas fa-file-csv me-2"></i>Export to CSV
+        </a>
+        {% endif %}
+    </div>
+
+    {% if predictions %}
+    <div class="table-responsive">
+        <table class="table table-hover table-custom align-middle">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Company</th>
+                    <th>Department</th>
+                    <th>Heart Rate (BPM)</th>
+                    <th>Stress Score</th>
+                    <th>Prediction</th>
+                    <th>Confidence</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pred in predictions %}
+                <tr>
+                    <td>{{ pred.prediction_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ pred.age }}</td>
+                    <td>{{ pred.gender }}</td>
+                    <td>Company {{ pred.company }}</td>
+                    <td>{{ pred.department }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'success-subtle text-success' if pred.resting_heart_rate >= 60 and pred.resting_heart_rate <= 75 else 'warning-subtle text-warning' if pred.resting_heart_rate >= 76 and pred.resting_heart_rate <= 95 else 'danger-subtle text-danger' }} border px-2 py-1">
+                            {{ pred.resting_heart_rate }} BPM
+                        </span>
+                    </td>
+                    <td>
+                        <strong>{{ "%.2f"|format(pred.calculated_score) }}/10</strong>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if pred.predicted_stress == 'Low' else 'warning' if pred.predicted_stress == 'Medium' else 'danger' }} px-2 py-1.5 font-weight-bold">
+                            {{ pred.predicted_stress }}
+                        </span>
+                    </td>
+                    <td>{{ "%.1f"|format(pred.confidence_score) }}%</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('download_pdf', pred_id=pred.id) }}" class="btn btn-sm btn-outline-danger" title="Save as PDF">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <div class="fs-1 text-secondary opacity-25 mb-3">
+            <i class="fas fa-folder-open"></i>
+        </div>
+        <h5 class="text-secondary font-weight-bold">No History Logs</h5>
+        <p class="text-secondary-50 small mb-4">Go to the Predict Stress panel and enter telemetry values to view history reports.</p>
+        <a href="{{ url_for('user_dashboard') }}" class="btn btn-custom btn-custom-primary">
+            Run Prediction <i class="fas fa-magic ms-1"></i>
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Employee Stress Prediction System - Welcome{% endblock %}
+
+{% block public_content %}
+<div class="landing-hero d-flex align-items-center">
+    <div class="container pt-5 pt-lg-0">
+        <div class="row align-items-center">
+            <!-- Left Promo Details Column -->
+            <div class="col-lg-6 mb-5 mb-lg-0">
+                <span class="badge bg-indigo-subtle text-indigo px-3 py-2 rounded-pill font-weight-bold mb-3 fs-6" style="color: var(--primary-color); background: rgba(79, 70, 229, 0.1);">
+                    <i class="fas fa-brain me-2"></i>Machine Learning Platform
+                </span>
+                <h1 class="hero-title">Employee Stress<br>Prediction System</h1>
+                <p class="hero-subtitle mb-4">
+                    Monitor workplace wellness and assess mental health patterns using advanced decision tree artificial intelligence. Analyze resting heart rate, experience pressure, and workload metrics to discover stress levels in real-time.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{{ url_for('register') }}" class="btn btn-custom-primary btn-custom btn-lg px-4 py-3">
+                        Get Started <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-custom btn-lg px-4 py-3 text-secondary-emphasis">
+                        Admin Login
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Glassmorphism Cards Column -->
+            <div class="col-lg-6">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="glass-panel p-4 h-100">
+                            <div class="fs-1 text-primary mb-3">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <h4 class="font-weight-bold mb-2">Predict & Save</h4>
+                            <p class="text-secondary mb-0">Input standard employee logs to calculate stress zones and save historical predictions securely.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="glass-panel p-4 h-100">
+                            <div class="fs-1 text-success mb-3">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            <h4 class="font-weight-bold mb-2">BPM Validation</h4>
+                            <p class="text-secondary mb-0">Real-time resting heart rate checks prevent inaccurate telemetry entries below 60 or above 120 BPM.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="glass-panel p-4 h-100">
+                            <div class="fs-1 text-warning mb-3">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <h4 class="font-weight-bold mb-2">PDF Report Export</h4>
+                            <p class="text-secondary mb-0">Generate fully printable and formatted analytical PDF reports detailing prediction scores immediately.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="glass-panel p-4 h-100">
+                            <div class="fs-1 text-danger mb-3">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <h4 class="font-weight-bold mb-2">Admin Analytics</h4>
+                            <p class="text-secondary mb-0">High-end dashboards with Chart.js visualization mapping department, gender, and monthly metrics.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

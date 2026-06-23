@@ -10,3 +10,5 @@ streamlit>=1.28
 plotly>=5.17
 openpyxl>=3.1
 reportlab>=5.0.0
+flask-sqlalchemy>=3.1
+flask-login>=0.6
