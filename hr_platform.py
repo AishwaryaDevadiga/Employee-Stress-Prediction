@@ -402,11 +402,15 @@ def show_prediction_page(models):
             pass
 
         age_when_joined = age - years_company
-        workload_score = (years_company / max_years) * 10
-        experience_pressure = max(years_company - prior_exp, 0)
-        heart_rate_stress = ((heart_rate - 60) / 60) * 10
-        raw_score = 0.30 * workload_score + 0.20 * experience_pressure + 0.50 * heart_rate_stress
+        # ==================== FEATURE ENGINEERING ====================
+        from feature_engineering import get_dataset_extremes, get_stress_calculation_details
+        max_years, min_hr, max_hr = get_dataset_extremes()
         
+        workload_score = (years_company / max_years) * 10
+        experience_pressure = max(years_company - prior_exp, 0.0)
+        heart_rate_stress = ((heart_rate - min_hr) / (max_hr - min_hr)) * 10
+        raw_score = 0.40 * workload_score + 0.30 * experience_pressure + 0.30 * heart_rate_stress
+
         features = np.array([[
             0,  # employee_id
             age,
@@ -443,23 +447,18 @@ def show_prediction_page(models):
             else:
                 ml_level = "High"
 
-            # Apply Heart Rate overrides (Section C)
+            # Use ML prediction as final level (Option 1)
             final_level = ml_level
-            if heart_rate >= 115:
-                if final_level == "Low":
-                    final_level = "Medium"
-            if heart_rate >= 120 and workload_score > 5:
-                final_level = "High"
 
-            # Align stress score strictly to final stress level's range (Section D)
+            # Align stress score strictly to final stress level's range (< 3.0 Low, < 6.0 Medium, >= 6.0 High)
             if final_level == "Low":
-                stress_score = min(max(raw_score, 0.0), 3.5)
+                stress_score = min(max(raw_score, 0.0), 2.99)
             elif final_level == "Medium":
-                stress_score = min(max(raw_score, 3.6), 6.5)
+                stress_score = min(max(raw_score, 3.0), 5.99)
             else:
-                stress_score = min(max(raw_score, 6.6), 10.0)
+                stress_score = min(max(raw_score, 6.0), 10.0)
 
-            # Calculate realistic confidence score from probabilities (Section E)
+            # Calculate realistic confidence score from probabilities
             if raw_confidence >= 99.9:
                 if final_level == "Low":
                     dist = abs(stress_score - 1.75)
@@ -473,7 +472,7 @@ def show_prediction_page(models):
             else:
                 confidence_score = raw_confidence
 
-            # Calculate probability breakdown for Section E
+            # Calculate probability breakdown
             prob_dict = {"Low": 0.0, "Medium": 0.0, "High": 0.0}
             prob_dict[final_level] = confidence_score
             remaining = 100.0 - confidence_score
@@ -492,16 +491,21 @@ def show_prediction_page(models):
                 prob_dict["Medium"] = remaining * 0.8
                 prob_dict["Low"] = remaining * 0.2
 
-            # Calculate feature percentage contributions for Transparency Panel (Section G)
-            total_weighted = (workload_score * 0.30) + (experience_pressure * 0.20) + (heart_rate_stress * 0.50)
-            if total_weighted > 0:
-                contrib_workload = ((workload_score * 0.30) / total_weighted) * 100
-                contrib_experience = ((experience_pressure * 0.20) / total_weighted) * 100
-                contrib_heart_rate = ((heart_rate_stress * 0.50) / total_weighted) * 100
-            else:
-                contrib_workload = 30.0
-                contrib_experience = 20.0
-                contrib_heart_rate = 50.0
+            # Calculate feature percentage contributions from model.feature_importances_ (Section G)
+            contrib_workload, contrib_experience, contrib_heart_rate = 40.0, 30.0, 30.0
+            if model is not None and hasattr(model, 'feature_importances_'):
+                try:
+                    importances = model.feature_importances_
+                    imp_workload = float(importances[-3])
+                    imp_experience = float(importances[-2])
+                    imp_heart_rate = float(importances[-1])
+                    total_imp = imp_workload + imp_experience + imp_heart_rate
+                    if total_imp > 0:
+                        contrib_workload = (imp_workload / total_imp) * 100
+                        contrib_experience = (imp_experience / total_imp) * 100
+                        contrib_heart_rate = (imp_heart_rate / total_imp) * 100
+                except Exception:
+                    pass
 
             # 1. Heart Rate Assessment
             st.markdown("### 1. Heart Rate Assessment")
@@ -563,9 +567,9 @@ def show_prediction_page(models):
                     'axis': {'range': [None, 10]},
                     'bar': {'color': "darkblue"},
                     'steps': [
-                        {'range': [0, 3.5], 'color': "#10b981"},
-                        {'range': [3.6, 6.5], 'color': "#f59e0b"},
-                        {'range': [6.6, 10.0], 'color': "#ef4444"}
+                        {'range': [0.0, 3.0], 'color': "#10b981"},
+                        {'range': [3.0, 6.0], 'color': "#f59e0b"},
+                        {'range': [6.0, 10.0], 'color': "#ef4444"}
                     ],
                     'threshold': {
                         'line': {'color': "red", 'width': 4},
@@ -579,7 +583,7 @@ def show_prediction_page(models):
             # 3. Prediction Explanation
             # Collapsible Stress Calculation Details
             st.markdown("---")
-            with st.expander("View Stress Calculation Details"):
+            with st.expander("Stress Score Calculation Details"):
                 col_exp1, col_exp2, col_exp3, col_exp4 = st.columns(4)
                 with col_exp1:
                     st.metric("Workload Score", f"{workload_score:.2f}/10")
@@ -590,53 +594,26 @@ def show_prediction_page(models):
                 with col_exp4:
                     st.metric("Stress Score", f"{stress_score:.2f}/10")
                 
-                # Dynamic Explanation generation (Section F)
-                if heart_rate <= 80:
-                    hr_desc = f"{heart_rate} BPM (Low Stress Zone)"
-                    hr_impact = "within a normal range and has minimal impact on the stress score"
-                elif heart_rate <= 100:
-                    hr_desc = f"{heart_rate} BPM (Medium Stress Zone)"
-                    hr_impact = "moderately elevated and contributes to the stress score"
-                else:
-                    hr_desc = f"{heart_rate} BPM (High Stress Zone)"
-                    hr_impact = "elevated and contributes significantly to the overall stress score"
-
-                if workload_score <= 3.5:
-                    wl_desc = "Low"
-                    wl_impact = "low workload factors"
-                elif workload_score <= 6.5:
-                    wl_desc = "Moderate"
-                    wl_impact = "workload factors"
-                else:
-                    wl_desc = "High"
-                    wl_impact = "high workload factors"
-
-                if experience_pressure <= 2.0:
-                    exp_desc = "Low"
-                elif experience_pressure <= 5.0:
-                    exp_desc = "Moderate"
-                else:
-                    exp_desc = "High"
-
+                # Dynamic Explanation containing the exact step-by-step calculations
                 explanation_text = (
-                    f"The employee's resting heart rate is {hr_desc} which is {hr_impact}. "
-                    f"Combined with {wl_desc} workload ({wl_impact}) and {exp_desc} experience pressure, "
-                    f"the system classifies the employee as {final_level} Stress with {confidence_score:.1f}% confidence."
+                    f"Workload Score = ({years_company} / {int(max_years) if max_years.is_integer() else max_years}) * 10 = {workload_score:.2f}\n\n"
+                    f"Experience Pressure = max({years_company} - {prior_exp}, 0) = {experience_pressure:.2f}\n\n"
+                    f"Heart Rate Stress = (({heart_rate} - {min_hr:.1f}) / ({max_hr:.1f} - {min_hr:.1f})) * 10 = {heart_rate_stress:.2f}\n\n"
+                    f"Stress Score =\n"
+                    f"0.4 * {workload_score:.2f} +\n"
+                    f"0.3 * {experience_pressure:.2f} +\n"
+                    f"0.3 * {heart_rate_stress:.2f}\n"
+                    f"= {stress_score:.2f}\n\n"
+                    f"Classification = {final_level}"
                 )
                 
                 st.markdown("---")
-                st.markdown("#### Factor Contribution Analysis")
-                st.info(explanation_text)
+                st.markdown("#### Factor Calculation Step-by-Step")
+                st.code(explanation_text, language="text")
                 
-                # Transparency Panel (Section G)
-                st.markdown("#### 🔍 Why was this prediction made? (Transparency Panel)")
-                col_t1, col_t2, col_t3 = st.columns(3)
-                with col_t1:
-                    st.metric("Workload Contribution", f"{contrib_workload:.0f}%")
-                with col_t2:
-                    st.metric("Experience Contribution", f"{contrib_experience:.0f}%")
-                with col_t3:
-                    st.metric("Heart Rate Contribution", f"{contrib_heart_rate:.0f}%")
+
+
+
 
             st.markdown("---")
             

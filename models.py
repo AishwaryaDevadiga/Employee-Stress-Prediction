@@ -35,27 +35,24 @@ class Prediction(db.Model):
 
     @property
     def calculated_score(self):
-        import os
-        import pandas as pd
-        max_years = 50.0
         try:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            data_path = os.path.join(base_dir, 'outputs', 'processed_data.csv')
-            if os.path.exists(data_path):
-                df_temp = pd.read_csv(data_path)
-                if 'years_in_the_company' in df_temp.columns:
-                    max_years = df_temp['years_in_the_company'].max()
+            import sys
+            import os
+            # Ensure src is in import path to read feature_engineering
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from src.feature_engineering import get_dataset_extremes
+            max_years, min_hr, max_hr = get_dataset_extremes()
         except Exception:
-            pass
+            max_years, min_hr, max_hr = 9.0, 55.0, 92.2
 
         workload = (self.years_in_company / max_years) * 10
         exp = max(self.years_in_company - self.prior_experience, 0.0)
-        hr_s = ((self.resting_heart_rate - 60) / 60) * 10
-        raw = 0.30 * workload + 0.20 * exp + 0.50 * hr_s
+        hr_s = ((self.resting_heart_rate - min_hr) / (max_hr - min_hr)) * 10
+        raw = 0.40 * workload + 0.30 * exp + 0.30 * hr_s
 
         if self.predicted_stress == "Low":
-            return min(max(raw, 0.0), 3.5)
+            return min(max(raw, 0.0), 2.99)
         elif self.predicted_stress == "Medium":
-            return min(max(raw, 3.6), 6.5)
+            return min(max(raw, 3.0), 5.99)
         else:
-            return min(max(raw, 6.6), 10.0)
+            return min(max(raw, 6.0), 10.0)

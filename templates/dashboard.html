@@ -140,55 +140,22 @@
 
                 </div>
 
-                <!-- 3. Prediction Explanation (Collapsible) -->
+                <!-- 3. Stress Score Calculation Details (Collapsible) -->
                 <div class="mb-4">
                     <button class="btn btn-outline-indigo w-100 mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStressDetails" aria-expanded="false" aria-controls="collapseStressDetails" style="border-color: var(--primary-color); color: var(--primary-color);">
-                        <i class="fas fa-info-circle me-2"></i>View Stress Calculation Details
+                        <i class="fas fa-calculator me-2"></i>Stress Score Calculation Details
                     </button>
                     <div class="collapse" id="collapseStressDetails">
                         <div class="card card-body bg-light border-0 rounded-3 p-3">
-                            <div class="row g-2 mb-3 text-center">
-                                <div class="col-3">
-                                    <small class="text-secondary d-block" style="font-size: 11px;">Workload</small>
-                                    <span class="badge bg-secondary">{{ "%.2f"|format(result.workload_score) }}/10</span>
-                                </div>
-                                <div class="col-3">
-                                    <small class="text-secondary d-block" style="font-size: 11px;">Pressure</small>
-                                    <span class="badge bg-secondary">{{ "%.2f"|format(result.experience_pressure) }}</span>
-                                </div>
-                                <div class="col-3">
-                                    <small class="text-secondary d-block" style="font-size: 11px;">HR Stress</small>
-                                    <span class="badge bg-secondary">{{ "%.2f"|format(result.heart_rate_stress) }}/10</span>
-                                </div>
-                                <div class="col-3">
-                                    <small class="text-secondary d-block" style="font-size: 11px;">Score</small>
-                                    <span class="badge bg-primary">{{ "%.2f"|format(result.stress_score) }}/10</span>
-                                </div>
-                            </div>
                             <div class="alert alert-info border-0 rounded-3 p-3 mb-3">
-                                <h6 class="font-weight-bold mb-1" style="font-size: 12px;"><i class="fas fa-info-circle me-1"></i>Analysis Detail:</h6>
-                                <small class="d-block" style="font-size: 11px;">{{ result.explanation }}</small>
-                            </div>
-                            <!-- Transparency Panel (Section G) -->
-                            <div class="card bg-white border border-light-subtle rounded-3 p-3">
-                                <h6 class="font-weight-bold mb-2 text-indigo" style="color: var(--primary-color); font-size: 12px;">
-                                    <i class="fas fa-eye me-1"></i>Why was this prediction made?
+                                <h6 class="font-weight-bold mb-3" style="font-size: 13px;">
+                                    <i class="fas fa-calculator me-1"></i>Stress Score Calculation Details:
                                 </h6>
-                                <div class="row text-center small">
-                                    <div class="col-4 border-end">
-                                        <span class="text-secondary d-block" style="font-size: 10px;">Workload</span>
-                                        <strong class="text-dark" style="font-size: 12px;">{{ "%.0f"|format(result.contrib_workload) }}%</strong>
-                                    </div>
-                                    <div class="col-4 border-end">
-                                        <span class="text-secondary d-block" style="font-size: 10px;">Experience</span>
-                                        <strong class="text-dark" style="font-size: 12px;">{{ "%.0f"|format(result.contrib_experience) }}%</strong>
-                                    </div>
-                                    <div class="col-4">
-                                        <span class="text-secondary d-block" style="font-size: 10px;">Heart Rate</span>
-                                        <strong class="text-dark" style="font-size: 12px;">{{ "%.0f"|format(result.contrib_heart_rate) }}%</strong>
-                                    </div>
-                                </div>
+                                <div class="bg-white border border-light-subtle rounded p-3 text-start text-dark" style="font-family: 'Courier New', Courier, monospace; font-size: 12px; white-space: pre-wrap; line-height: 1.4;">{{ result.explanation }}</div>
                             </div>
+                       </div>
+
+
                         </div>
                     </div>
                 </div>
