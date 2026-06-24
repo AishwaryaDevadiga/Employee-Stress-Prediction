@@ -137,56 +137,57 @@
                         </div>
                     </div>
                     
-                    <!-- Probability Breakdown -->
-                    <div class="mt-3">
-                        <small class="text-secondary d-block mb-1 font-weight-bold">Probability Breakdown:</small>
-                        <div class="progress" style="height: 18px; border-radius: 6px; font-size: 11px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ result.prob_low }}%;" aria-valuenow="{{ result.prob_low }}" aria-valuemin="0" aria-valuemax="100">Low: {{ "%.1f"|format(result.prob_low) }}%</div>
-                            <div class="progress-bar bg-warning text-dark" role="progressbar" style="width: {{ result.prob_medium }}%;" aria-valuenow="{{ result.prob_medium }}" aria-valuemin="0" aria-valuemax="100">Medium: {{ "%.1f"|format(result.prob_medium) }}%</div>
-                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ result.prob_high }}%;" aria-valuenow="{{ result.prob_high }}" aria-valuemin="0" aria-valuemax="100">High: {{ "%.1f"|format(result.prob_high) }}%</div>
-                        </div>
-                    </div>
+
                 </div>
 
-                <!-- 3. Prediction Explanation -->
+                <!-- 3. Prediction Explanation (Collapsible) -->
                 <div class="mb-4">
-                    <h5 class="font-weight-bold text-secondary-emphasis mb-3">3. Prediction Explanation</h5>
-                    <div class="row g-2 mb-3 text-center">
-                        <div class="col-4">
-                            <small class="text-secondary d-block">Workload Score</small>
-                            <span class="badge bg-secondary">{{ "%.2f"|format(result.workload_score) }}/10</span>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-secondary d-block">Exp. Pressure</small>
-                            <span class="badge bg-secondary">{{ "%.2f"|format(result.experience_pressure) }}</span>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-secondary d-block">HR Stress</small>
-                            <span class="badge bg-secondary">{{ "%.2f"|format(result.heart_rate_stress) }}/10</span>
-                        </div>
-                    </div>
-                    <div class="alert alert-info border-0 rounded-3 p-3">
-                        <h6 class="font-weight-bold mb-1"><i class="fas fa-info-circle me-1"></i>Analysis Detail:</h6>
-                        <small class="d-block">{{ result.explanation }}</small>
-                    </div>
-
-                    <!-- Transparency Panel (Section G) -->
-                    <div class="card bg-light border-0 rounded-3 p-3 mt-3">
-                        <h6 class="font-weight-bold mb-2 text-indigo" style="color: var(--primary-color); font-size: 13px;">
-                            <i class="fas fa-eye me-1"></i>Why was this prediction made? (Transparency Panel)
-                        </h6>
-                        <div class="row text-center small">
-                            <div class="col-4 border-end">
-                                <span class="text-secondary d-block">Workload</span>
-                                <strong class="text-dark fs-6">{{ "%.0f"|format(result.contrib_workload) }}%</strong>
+                    <button class="btn btn-outline-indigo w-100 mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStressDetails" aria-expanded="false" aria-controls="collapseStressDetails" style="border-color: var(--primary-color); color: var(--primary-color);">
+                        <i class="fas fa-info-circle me-2"></i>View Stress Calculation Details
+                    </button>
+                    <div class="collapse" id="collapseStressDetails">
+                        <div class="card card-body bg-light border-0 rounded-3 p-3">
+                            <div class="row g-2 mb-3 text-center">
+                                <div class="col-3">
+                                    <small class="text-secondary d-block" style="font-size: 11px;">Workload</small>
+                                    <span class="badge bg-secondary">{{ "%.2f"|format(result.workload_score) }}/10</span>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-secondary d-block" style="font-size: 11px;">Pressure</small>
+                                    <span class="badge bg-secondary">{{ "%.2f"|format(result.experience_pressure) }}</span>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-secondary d-block" style="font-size: 11px;">HR Stress</small>
+                                    <span class="badge bg-secondary">{{ "%.2f"|format(result.heart_rate_stress) }}/10</span>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-secondary d-block" style="font-size: 11px;">Score</small>
+                                    <span class="badge bg-primary">{{ "%.2f"|format(result.stress_score) }}/10</span>
+                                </div>
                             </div>
-                            <div class="col-4 border-end">
-                                <span class="text-secondary d-block">Experience</span>
-                                <strong class="text-dark fs-6">{{ "%.0f"|format(result.contrib_experience) }}%</strong>
+                            <div class="alert alert-info border-0 rounded-3 p-3 mb-3">
+                                <h6 class="font-weight-bold mb-1" style="font-size: 12px;"><i class="fas fa-info-circle me-1"></i>Analysis Detail:</h6>
+                                <small class="d-block" style="font-size: 11px;">{{ result.explanation }}</small>
                             </div>
-                            <div class="col-4">
-                                <span class="text-secondary d-block">Heart Rate</span>
-                                <strong class="text-dark fs-6">{{ "%.0f"|format(result.contrib_heart_rate) }}%</strong>
+                            <!-- Transparency Panel (Section G) -->
+                            <div class="card bg-white border border-light-subtle rounded-3 p-3">
+                                <h6 class="font-weight-bold mb-2 text-indigo" style="color: var(--primary-color); font-size: 12px;">
+                                    <i class="fas fa-eye me-1"></i>Why was this prediction made?
+                                </h6>
+                                <div class="row text-center small">
+                                    <div class="col-4 border-end">
+                                        <span class="text-secondary d-block" style="font-size: 10px;">Workload</span>
+                                        <strong class="text-dark" style="font-size: 12px;">{{ "%.0f"|format(result.contrib_workload) }}%</strong>
+                                    </div>
+                                    <div class="col-4 border-end">
+                                        <span class="text-secondary d-block" style="font-size: 10px;">Experience</span>
+                                        <strong class="text-dark" style="font-size: 12px;">{{ "%.0f"|format(result.contrib_experience) }}%</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <span class="text-secondary d-block" style="font-size: 10px;">Heart Rate</span>
+                                        <strong class="text-dark" style="font-size: 12px;">{{ "%.0f"|format(result.contrib_heart_rate) }}%</strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -551,75 +551,68 @@ def main():
                     with col3:
                         st.metric("Confidence Score", f"{confidence_score:.1f}%")
 
-                    # Probability Breakdown (Section E)
-                    st.markdown("#### Probability Breakdown")
-                    col_p1, col_p2, col_p3 = st.columns(3)
-                    with col_p1:
-                        st.metric("Low Probability", f"{prob_dict['Low']:.1f}%")
-                    with col_p2:
-                        st.metric("Medium Probability", f"{prob_dict['Medium']:.1f}%")
-                    with col_p3:
-                        st.metric("High Probability", f"{prob_dict['High']:.1f}%")
+
                         
-                    # 3. Prediction Explanation
+                    # Collapsible Stress Calculation Details
                     st.markdown("---")
-                    st.markdown("### 3. Prediction Explanation")
-                    
-                    col_exp1, col_exp2, col_exp3 = st.columns(3)
-                    with col_exp1:
-                        st.metric("Workload Score", f"{workload_score:.2f}/10")
-                    with col_exp2:
-                        st.metric("Experience Pressure", f"{experience_pressure:.2f}")
-                    with col_exp3:
-                        st.metric("Heart Rate Stress", f"{heart_rate_stress:.2f}/10")
+                    with st.expander("View Stress Calculation Details"):
+                        col_exp1, col_exp2, col_exp3, col_exp4 = st.columns(4)
+                        with col_exp1:
+                            st.metric("Workload Score", f"{workload_score:.2f}/10")
+                        with col_exp2:
+                            st.metric("Experience Pressure", f"{experience_pressure:.2f}")
+                        with col_exp3:
+                            st.metric("Heart Rate Stress", f"{heart_rate_stress:.2f}/10")
+                        with col_exp4:
+                            st.metric("Stress Score", f"{stress_score:.2f}/10")
                         
-                    st.markdown("#### Factor Contribution Analysis")
-                    
-                    # Dynamic Explanation generation (Section F)
-                    if heart_rate <= 80:
-                        hr_desc = f"{heart_rate} BPM (Low Stress Zone)"
-                        hr_impact = "within a normal range and has minimal impact on the stress score"
-                    elif heart_rate <= 100:
-                        hr_desc = f"{heart_rate} BPM (Medium Stress Zone)"
-                        hr_impact = "moderately elevated and contributes to the stress score"
-                    else:
-                        hr_desc = f"{heart_rate} BPM (High Stress Zone)"
-                        hr_impact = "elevated and contributes significantly to the overall stress score"
+                        # Dynamic Explanation generation (Section F)
+                        if heart_rate <= 80:
+                            hr_desc = f"{heart_rate} BPM (Low Stress Zone)"
+                            hr_impact = "within a normal range and has minimal impact on the stress score"
+                        elif heart_rate <= 100:
+                            hr_desc = f"{heart_rate} BPM (Medium Stress Zone)"
+                            hr_impact = "moderately elevated and contributes to the stress score"
+                        else:
+                            hr_desc = f"{heart_rate} BPM (High Stress Zone)"
+                            hr_impact = "elevated and contributes significantly to the overall stress score"
 
-                    if workload_score <= 3.5:
-                        wl_desc = "Low"
-                        wl_impact = "low workload factors"
-                    elif workload_score <= 6.5:
-                        wl_desc = "Moderate"
-                        wl_impact = "workload factors"
-                    else:
-                        wl_desc = "High"
-                        wl_impact = "high workload factors"
+                        if workload_score <= 3.5:
+                            wl_desc = "Low"
+                            wl_impact = "low workload factors"
+                        elif workload_score <= 6.5:
+                            wl_desc = "Moderate"
+                            wl_impact = "workload factors"
+                        else:
+                            wl_desc = "High"
+                            wl_impact = "high workload factors"
 
-                    if experience_pressure <= 2.0:
-                        exp_desc = "Low"
-                    elif experience_pressure <= 5.0:
-                        exp_desc = "Moderate"
-                    else:
-                        exp_desc = "High"
+                        if experience_pressure <= 2.0:
+                            exp_desc = "Low"
+                        elif experience_pressure <= 5.0:
+                            exp_desc = "Moderate"
+                        else:
+                            exp_desc = "High"
 
-                    explanation_text = (
-                        f"The employee's resting heart rate is {hr_desc} which is {hr_impact}. "
-                        f"Combined with {wl_desc} workload ({wl_impact}) and {exp_desc} experience pressure, "
-                        f"the system classifies the employee as {final_level} Stress with {confidence_score:.1f}% confidence."
-                    )
-                        
-                    st.info(explanation_text)
+                        explanation_text = (
+                            f"The employee's resting heart rate is {hr_desc} which is {hr_impact}. "
+                            f"Combined with {wl_desc} workload ({wl_impact}) and {exp_desc} experience pressure, "
+                            f"the system classifies the employee as {final_level} Stress with {confidence_score:.1f}% confidence."
+                        )
+                            
+                        st.markdown("---")
+                        st.markdown("#### Factor Contribution Analysis")
+                        st.info(explanation_text)
 
-                    # Transparency Panel (Section G)
-                    st.markdown("#### 🔍 Why was this prediction made? (Transparency Panel)")
-                    col_t1, col_t2, col_t3 = st.columns(3)
-                    with col_t1:
-                        st.metric("Workload Contribution", f"{contrib_workload:.0f}%")
-                    with col_t2:
-                        st.metric("Experience Contribution", f"{contrib_experience:.0f}%")
-                    with col_t3:
-                        st.metric("Heart Rate Contribution", f"{contrib_heart_rate:.0f}%")
+                        # Transparency Panel (Section G)
+                        st.markdown("#### 🔍 Why was this prediction made? (Transparency Panel)")
+                        col_t1, col_t2, col_t3 = st.columns(3)
+                        with col_t1:
+                            st.metric("Workload Contribution", f"{contrib_workload:.0f}%")
+                        with col_t2:
+                            st.metric("Experience Contribution", f"{contrib_experience:.0f}%")
+                        with col_t3:
+                            st.metric("Heart Rate Contribution", f"{contrib_heart_rate:.0f}%")
                     
                     st.markdown("---")
                     
