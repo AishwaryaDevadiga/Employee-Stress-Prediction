@@ -166,56 +166,88 @@ def main():
     # Load data and models
     models, df = load_models_and_data()
     
+    # Check if models are loaded
+    if not models or df is None:
+        st.error("⚠️ Models or data not loaded. Please run `python train.py` first.")
+        st.info("Quick Start:\n1. Open terminal\n2. Run: `python train.py`\n3. Then run: `streamlit run dashboard.py`")
+        return
+
+    # Ensure Stress_Level column contains exactly Low, Medium, High
+    # If the dataset contains numeric labels (0 -> Low, 1 -> Medium, 2 -> High), convert them first
+    if 'Stress_Level' in df.columns:
+        if pd.api.types.is_numeric_dtype(df['Stress_Level']):
+            df['Stress_Level'] = df['Stress_Level'].map({0: 'Low', 1: 'Medium', 2: 'High'})
+        # Use Categorical type to enforce standard order (Low -> Medium -> High)
+        df['Stress_Level'] = pd.Categorical(df['Stress_Level'], categories=['Low', 'Medium', 'High'], ordered=True)
+
     # Sidebar navigation
     st.sidebar.title("🧠 Stress Prediction System")
     page = st.sidebar.radio(
         "Navigate to:",
         ["📊 Dashboard", "📈 Analytics", "🔮 Predictions", "👥 Employee Search", "📋 Reports"]
     )
-    
-    # Check if models are loaded
-    if not models or df is None:
-        st.error("⚠️ Models or data not loaded. Please run `python train.py` first.")
-        st.info("Quick Start:\n1. Open terminal\n2. Run: `python train.py`\n3. Then run: `streamlit run dashboard.py`")
-        return
+
+    # 1. Create a working filter in the sidebar using Streamlit's selectbox
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🎯 Stress Level Filter")
+    selected_level = st.sidebar.selectbox(
+        "Select Stress Level:",
+        ["All Stress Levels", "Low Stress", "Medium Stress", "High Stress"]
+    )
+
+    # 6. Apply filtering using filtered_df as the single source of truth
+    # Do not create a new dataframe every time; instead use copy and modify when filtered
+    filtered_df = df.copy()
+    if selected_level != "All Stress Levels":
+        level_map = {
+            "Low Stress": "Low",
+            "Medium Stress": "Medium",
+            "High Stress": "High"
+        }
+        filtered_df = df[df["Stress_Level"] == level_map[selected_level]]
+
+    # 7. If no records match the filter, show warning and gracefully stop execution (no errors)
+    if filtered_df.empty:
+        st.warning("No employees found for the selected stress level.")
+        st.stop()
+
+    # Pre-derive gender subsets from the filtered dataframe for the metrics/charts
+    male_df = filtered_df[filtered_df['Gender'] == 0]
+    female_df = filtered_df[filtered_df['Gender'] == 1]
     
     # ==================== DASHBOARD PAGE ====================
     if page == "📊 Dashboard":
         st.title("🧠 Employee Stress Prediction System")
         st.subheader("Real-time HR Analytics Dashboard")
         
-        # Key metrics
+        # Key metrics derived from filtered_df
         col1, col2, col3, col4 = st.columns(4)
         
-        low_count = len(df[df['Stress_Level'] == 0])
-        med_count = len(df[df['Stress_Level'] == 1])
-        high_count = len(df[df['Stress_Level'] == 2])
-        total = len(df)
+        low_count = len(filtered_df[filtered_df['Stress_Level'] == 'Low'])
+        med_count = len(filtered_df[filtered_df['Stress_Level'] == 'Medium'])
+        high_count = len(filtered_df[filtered_df['Stress_Level'] == 'High'])
+        total = len(filtered_df)
         
         with col1:
             st.metric("Total Employees", total, "👥")
         
         with col2:
-            st.metric("🟢 Low Stress", low_count, f"{low_count/total*100:.1f}%")
+            st.metric("🟢 Low Stress", low_count, f"{low_count/total*100:.1f}%" if total > 0 else "0.0%")
         
         with col3:
-            st.metric("🟡 Medium Stress", med_count, f"{med_count/total*100:.1f}%")
+            st.metric("🟡 Medium Stress", med_count, f"{med_count/total*100:.1f}%" if total > 0 else "0.0%")
         
         with col4:
-            st.metric("🔴 High Stress", high_count, f"{high_count/total*100:.1f}%")
+            st.metric("🔴 High Stress", high_count, f"{high_count/total*100:.1f}%" if total > 0 else "0.0%")
         
-        # Charts
+        # Charts based on filtered_df
         col1, col2 = st.columns(2)
         
         with col1:
             # Stress distribution pie chart
             stress_data = {
                 'Stress Level': ['Low Stress', 'Medium Stress', 'High Stress'],
-                'Count': [
-                    len(df[df['Stress_Level'] == 0]),
-                    len(df[df['Stress_Level'] == 1]),
-                    len(df[df['Stress_Level'] == 2])
-                ]
+                'Count': [low_count, med_count, high_count]
             }
             stress_df = pd.DataFrame(stress_data)
             
@@ -231,12 +263,12 @@ def main():
             st.plotly_chart(fig_pie, use_container_width=True)
         
         with col2:
-            # Age vs Stress Level
+            # Age vs Stress Level scatter plot
             fig_age = px.scatter(
-                df, x='age', y='Resting_Heart_Rate',
+                filtered_df, x='age', y='Resting_Heart_Rate',
                 color='Stress_Level',
                 title="Age vs Heart Rate (colored by Stress Level)",
-                color_discrete_map={0: '#10b981', 1: '#f59e0b', 2: '#ef4444'},
+                color_discrete_map={'Low': '#10b981', 'Medium': '#f59e0b', 'High': '#ef4444'},
                 labels={'Stress_Level': 'Stress Level', 'age': 'Age', 'Resting_Heart_Rate': 'Heart Rate'}
             )
             st.plotly_chart(fig_age, use_container_width=True)
@@ -245,9 +277,9 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            # Gender distribution
+            # Gender distribution bar chart
             gender_labels = ['Male', 'Female']
-            gender_counts = [len(df[df['Gender'] == 0]), len(df[df['Gender'] == 1])]
+            gender_counts = [len(filtered_df[filtered_df['Gender'] == 0]), len(filtered_df[filtered_df['Gender'] == 1])]
             fig_gender = px.bar(
                 x=gender_labels, y=gender_counts,
                 title="Employee Distribution by Gender",
@@ -259,9 +291,17 @@ def main():
         
         with col2:
             st.write("**Female Employees**")
-            st.metric("Count", len(female_df))
-            st.metric("Avg Age", f"{female_df['age'].mean():.1f}")
-            st.metric("Avg Heart Rate", f"{female_df['Resting_Heart_Rate'].mean():.1f}")
+            f_count = len(female_df)
+            f_age = f"{female_df['age'].mean():.1f}" if f_count > 0 else "N/A"
+            f_hr = f"{female_df['Resting_Heart_Rate'].mean():.1f}" if f_count > 0 else "N/A"
+            st.metric("Count", f_count)
+            st.metric("Avg Age", f_age)
+            st.metric("Avg Heart Rate", f_hr)
+
+        # 3. Display interactive employee table preview
+        st.markdown("---")
+        st.subheader("📋 Employee Records Table")
+        st.dataframe(filtered_df[['employee_id', 'age', 'Gender', 'Resting_Heart_Rate', 'Stress_Level', 'salary']], use_container_width=True)
     
     # ==================== ANALYTICS PAGE ====================
     elif page == "📈 Analytics":
@@ -274,10 +314,9 @@ def main():
             
             col1, col2 = st.columns(2)
             
-            with col1:
-                # Age distribution
+            with col1:                # Age distribution
                 fig_age_dist = px.histogram(
-                    df, x='age', nbins=30,
+                    filtered_df, x='age', nbins=30,
                     title="Age Distribution",
                     labels={'age': 'Age', 'count': 'Count'}
                 )
@@ -286,7 +325,7 @@ def main():
             with col2:
                 # Salary distribution
                 fig_salary_dist = px.histogram(
-                    df, x='salary', nbins=30,
+                    filtered_df, x='salary', nbins=30,
                     title="Salary Distribution",
                     labels={'salary': 'Salary', 'count': 'Count'}
                 )
@@ -296,43 +335,59 @@ def main():
             st.subheader("Correlation Heatmap")
             
             # Select numeric columns
-            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-            corr = df[numeric_cols].corr()
-            
-            fig_corr = go.Figure(
-                data=go.Heatmap(z=corr.values, x=corr.columns, y=corr.columns, colorscale='RdBu')
-            )
-            fig_corr.update_layout(title="Feature Correlation Matrix", height=600)
-            st.plotly_chart(fig_corr, use_container_width=True)
+            numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
+            if numeric_cols:
+                corr = filtered_df[numeric_cols].corr()
+                fig_corr = go.Figure(
+                    data=go.Heatmap(z=corr.values, x=corr.columns, y=corr.columns, colorscale='RdBu')
+                )
+                fig_corr.update_layout(title="Feature Correlation Matrix", height=600)
+                st.plotly_chart(fig_corr, use_container_width=True)
+            else:
+                st.info("No numeric columns found for correlation.")
         
         with tab3:
             st.subheader("Gender-wise Analysis")
             
             col1, col2, col3 = st.columns(3)
             
-            male_df = df[df['Gender'] == 0]
-            female_df = df[df['Gender'] == 1]
-            
             with col1:
                 st.write("**Male Employees**")
-                st.metric("Count", len(male_df))
-                st.metric("Avg Age", f"{male_df['age'].mean():.1f}")
-                st.metric("Avg Heart Rate", f"{male_df['Resting_Heart_Rate'].mean():.1f}")
+                m_count = len(male_df)
+                m_age = f"{male_df['age'].mean():.1f}" if m_count > 0 else "N/A"
+                m_hr = f"{male_df['Resting_Heart_Rate'].mean():.1f}" if m_count > 0 else "N/A"
+                st.metric("Count", m_count)
+                st.metric("Avg Age", m_age)
+                st.metric("Avg Heart Rate", m_hr)
             
             with col2:
                 st.write("**Female Employees**")
-                st.metric("Count", len(female_df))
-                st.metric("Avg Age", f"{female_df['age'].mean():.1f}")
-                st.metric("Avg Heart Rate", f"{female_df['Resting_Heart_Rate'].mean():.1f}")
+                f_count = len(female_df)
+                f_age = f"{female_df['age'].mean():.1f}" if f_count > 0 else "N/A"
+                f_hr = f"{female_df['Resting_Heart_Rate'].mean():.1f}" if f_count > 0 else "N/A"
+                st.metric("Count", f_count)
+                st.metric("Avg Age", f_age)
+                st.metric("Avg Heart Rate", f_hr)
             
             with col3:
                 st.write("**Stress Comparison**")
-                male_stress_dist = male_df['Stress_Level'].value_counts(normalize=True).sort_index() * 100
-                female_stress_dist = female_df['Stress_Level'].value_counts(normalize=True).sort_index() * 100
+                
+                # Fetch categories correctly for the ordered category column
+                if m_count > 0:
+                    male_stress_dist = male_df['Stress_Level'].value_counts(normalize=True).sort_index() * 100
+                    male_vals = [male_stress_dist.get('Low', 0), male_stress_dist.get('Medium', 0), male_stress_dist.get('High', 0)]
+                else:
+                    male_vals = [0, 0, 0]
+                    
+                if f_count > 0:
+                    female_stress_dist = female_df['Stress_Level'].value_counts(normalize=True).sort_index() * 100
+                    female_vals = [female_stress_dist.get('Low', 0), female_stress_dist.get('Medium', 0), female_stress_dist.get('High', 0)]
+                else:
+                    female_vals = [0, 0, 0]
                 
                 comparison_data = pd.DataFrame({
-                    'Male': male_stress_dist.values if len(male_stress_dist) == 3 else [0]*3,
-                    'Female': female_stress_dist.values if len(female_stress_dist) == 3 else [0]*3
+                    'Male': male_vals,
+                    'Female': female_vals
                 }, index=['Low', 'Medium', 'High'])
                 
                 fig_gender_comparison = px.bar(
@@ -347,7 +402,7 @@ def main():
             st.subheader("Department Analysis")
             
             # Get department columns
-            dept_cols = [col for col in df.columns if col.startswith('department_')]
+            dept_cols = [col for col in filtered_df.columns if col.startswith('department_')]
             
             if dept_cols:
                 st.info(f"Found {len(dept_cols)} departments in dataset")
@@ -663,7 +718,7 @@ def main():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            search_type = st.selectbox("Search by:", ["Employee ID", "Stress Level", "Department"])
+            search_type = st.selectbox("Search by:", ["Employee ID"])
         
         if search_type == "Employee ID":
             emp_id = st.number_input("Enter Employee ID", min_value=1, max_value=int(df['employee_id'].max()))
@@ -672,27 +727,16 @@ def main():
                 emp_data = df[df['employee_id'] == emp_id]
                 if not emp_data.empty:
                     st.success(f"Found employee #{emp_id}")
-                    st.dataframe(emp_data)
+                    # Map the stress level numeric code in search output if it is still numeric
+                    emp_data_display = emp_data.copy()
+                    if 'Stress_Level' in emp_data_display.columns:
+                        # Ensure we map from categorical back to display string if needed, or if it is numeric
+                        if pd.api.types.is_numeric_dtype(emp_data_display['Stress_Level']):
+                            emp_data_display['Stress_Level'] = emp_data_display['Stress_Level'].map({0: 'Low', 1: 'Medium', 2: 'High'})
+                    st.dataframe(emp_data_display)
                 else:
                     st.warning(f"No employee found with ID #{emp_id}")
         
-        elif search_type == "Stress Level":
-            stress_filter = st.selectbox("Select Stress Level:", ["Low", "Medium", "High"])
-            stress_map = {'Low': 0, 'Medium': 1, 'High': 2}
-            
-            filtered = df[df['Stress_Level'] == stress_map[stress_filter]]
-            st.write(f"Found {len(filtered)} employees with {stress_filter} stress level")
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total", len(filtered))
-            with col2:
-                st.metric("Avg Age", f"{filtered['age'].mean():.1f}")
-            with col3:
-                st.metric("Avg Salary", f"${filtered['salary'].mean():,.0f}")
-            
-            st.dataframe(filtered[['employee_id', 'age', 'salary', 'Stress_Level']])
-    
     # ==================== REPORTS PAGE ====================
     elif page == "📋 Reports":
         st.title("📋 Reports & Exports")
@@ -701,21 +745,36 @@ def main():
         
         with col1:
             if st.button("📊 Generate Summary Report"):
+                low_c = len(filtered_df[filtered_df['Stress_Level'] == 'Low'])
+                med_c = len(filtered_df[filtered_df['Stress_Level'] == 'Medium'])
+                high_c = len(filtered_df[filtered_df['Stress_Level'] == 'High'])
+                total_c = len(filtered_df)
+                
+                # Check for zero rows to avoid division by zero
+                low_pct = (low_c / total_c * 100) if total_c > 0 else 0
+                med_pct = (med_c / total_c * 100) if total_c > 0 else 0
+                high_pct = (high_c / total_c * 100) if total_c > 0 else 0
+                
+                avg_age = filtered_df['age'].mean() if total_c > 0 else 0
+                avg_sal = filtered_df['salary'].mean() if total_c > 0 else 0
+                avg_hr = filtered_df['Resting_Heart_Rate'].mean() if total_c > 0 else 0
+                avg_years = filtered_df['years_in_the_company'].mean() if total_c > 0 else 0
+                
                 summary = f"""
                 # Employee Stress Prediction System Report
                 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 
                 ## Dataset Overview
-                - Total Employees: {len(df)}
-                - Low Stress: {len(df[df['Stress_Level']==0])} ({len(df[df['Stress_Level']==0])/len(df)*100:.1f}%)
-                - Medium Stress: {len(df[df['Stress_Level']==1])} ({len(df[df['Stress_Level']==1])/len(df)*100:.1f}%)
-                - High Stress: {len(df[df['Stress_Level']==2])} ({len(df[df['Stress_Level']==2])/len(df)*100:.1f}%)
+                - Total Employees: {total_c}
+                - Low Stress: {low_c} ({low_pct:.1f}%)
+                - Medium Stress: {med_c} ({med_pct:.1f}%)
+                - High Stress: {high_c} ({high_pct:.1f}%)
                 
                 ## Demographics
-                - Average Age: {df['age'].mean():.1f}
-                - Average Salary: ${df['salary'].mean():,.0f}
-                - Average Heart Rate: {df['Resting_Heart_Rate'].mean():.1f} BPM
-                - Average Years in Company: {df['years_in_the_company'].mean():.1f}
+                - Average Age: {avg_age:.1f}
+                - Average Salary: ${avg_sal:,.0f}
+                - Average Heart Rate: {avg_hr:.1f} BPM
+                - Average Years in Company: {avg_years:.1f}
                 """
                 st.text(summary)
                 st.download_button(
@@ -727,7 +786,7 @@ def main():
         
         with col2:
             if st.button("📈 Export Dataset (CSV)"):
-                csv_data = df.to_csv(index=False)
+                csv_data = filtered_df.to_csv(index=False)
                 st.download_button(
                     label="📥 Download Dataset",
                     data=csv_data,

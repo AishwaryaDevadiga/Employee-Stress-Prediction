@@ -34,15 +34,16 @@
 </div>
 
 <!-- Tabs Section -->
+{% set show_predictions = (search_query or stress_filter) %}
 <div class="glass-panel p-4 mb-4">
     <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active font-weight-bold" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab" aria-controls="analytics" aria-selected="true">
+            <button class="nav-link {% if not show_predictions %}active{% endif %} font-weight-bold" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab" aria-controls="analytics" aria-selected="{% if not show_predictions %}true{% else %}false{% endif %}">
                 <i class="fas fa-chart-bar me-2"></i>Analytics Dashboard
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link font-weight-bold" id="predictions-tab" data-bs-toggle="tab" data-bs-target="#predictions" type="button" role="tab" aria-controls="predictions" aria-selected="false">
+            <button class="nav-link {% if show_predictions %}active{% endif %} font-weight-bold" id="predictions-tab" data-bs-toggle="tab" data-bs-target="#predictions" type="button" role="tab" aria-controls="predictions" aria-selected="{% if show_predictions %}true{% else %}false{% endif %}">
                 <i class="fas fa-history me-2"></i>Predictions Log
             </button>
         </li>
@@ -55,7 +56,7 @@
 
     <div class="tab-content" id="adminTabsContent">
         <!-- 1. Analytics Dashboard Tab -->
-        <div class="tab-pane fade show active" id="analytics" role="tabpanel" aria-labelledby="analytics-tab">
+        <div class="tab-pane fade {% if not show_predictions %}show active{% endif %}" id="analytics" role="tabpanel" aria-labelledby="analytics-tab">
             <div class="row g-4">
                 <div class="col-lg-6">
                     <div class="border rounded-3 p-3 bg-light-subtle shadow-sm">
@@ -93,7 +94,7 @@
         </div>
 
         <!-- 2. Predictions Log Tab -->
-        <div class="tab-pane fade" id="predictions" role="tabpanel" aria-labelledby="predictions-tab">
+        <div class="tab-pane fade {% if show_predictions %}show active{% endif %}" id="predictions" role="tabpanel" aria-labelledby="predictions-tab">
             <!-- Search & Filter Controls -->
             <form action="{{ url_for('admin_dashboard') }}" method="GET" class="row g-3 mb-4">
                 <div class="col-md-5">
